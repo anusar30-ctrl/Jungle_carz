@@ -1,0 +1,139 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Provider {
+  EMAIL
+  GOOGLE
+  FACEBOOK
+  APPLE
+}
+
+enum CarCategory {
+  REGULAR
+  TOURISM
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum RentalType {
+  SELF_DRIVE
+  WITH_DRIVER
+}
+
+model User {
+  id           String     @id @default(uuid())
+  email        String     @unique
+  passwordHash String?    @map("password_hash")
+  fullName     String     @map("full_name")
+  mobile       String     @default("")
+  provider     Provider   @default(EMAIL)
+  role         Role       @default(USER)
+  avatar       String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+  bookings     Booking[]
+  favorites    Favorite[]
+
+  @@map("users")
+}
+
+model Car {
+  id                  String      @id @default(uuid())
+  brand               String
+  model               String
+  name                String
+  vehicleType         String      @map("vehicle_type")
+  category            CarCategory @default(REGULAR)
+  year                Int         @default(2024)
+  transmission        String
+  fuel                String
+  seats               Int
+  mileage             String
+  rating              Float       @default(4.5)
+  reviews             Int         @default(0)
+  pricePerDay         Int         @map("price_per_day")
+  originalPrice       Int         @map("original_price")
+  securityDeposit     Int         @map("security_deposit")
+  images              Json
+  featureChips        Json        @map("feature_chips")
+  amenities           Json
+  badges              Json
+  discountPercent     Int?        @map("discount_percent")
+  tag                 String?
+  cancellationPolicy  String      @map("cancellation_policy")
+  unlimitedKm         Boolean     @default(true) @map("unlimited_km")
+  instantBooking      Boolean     @default(true) @map("instant_booking")
+  freeCancellation    Boolean     @default(true) @map("free_cancellation")
+  airConditioning     Boolean     @default(true) @map("air_conditioning")
+  bluetoothFeature    Boolean     @default(true) @map("bluetooth_feature")
+  sunroof             Boolean     @default(false)
+  popularity          Int         @default(70)
+  createdAt           DateTime    @default(now()) @map("created_at")
+  updatedAt           DateTime    @updatedAt @map("updated_at")
+  bookings            Booking[]
+  favorites           Favorite[]
+
+  @@map("cars")
+}
+
+model Booking {
+  id           String        @id @default(uuid())
+  reference    String        @unique
+  userId       String        @map("user_id")
+  carId        String        @map("car_id")
+  carName      String        @map("car_name")
+  carImage     String        @map("car_image") @db.Text
+  rentalType   RentalType    @map("rental_type")
+  pickupCity   String        @map("pickup_city")
+  dropCity     String        @map("drop_city")
+  pickupDate   String        @map("pickup_date")
+  dropDate     String        @map("drop_date")
+  pickupTime   String        @map("pickup_time")
+  dropTime     String        @map("drop_time")
+  days         Int
+  pricePerDay  Int           @map("price_per_day")
+  basePrice    Int           @map("base_price")
+  gst          Int
+  total        Int
+  customerName String        @map("customer_name")
+  customerEmail String       @map("customer_email")
+  customerMobile String      @map("customer_mobile")
+  status       BookingStatus @default(PENDING)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car          Car           @relation(fields: [carId], references: [id], onDelete: Restrict)
+
+  @@index([userId])
+  @@index([carId])
+  @@index([status])
+  @@map("bookings")
+}
+
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  carId     String   @map("car_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  car       Car      @relation(fields: [carId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, carId])
+  @@map("favorites")
+}

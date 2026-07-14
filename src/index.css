@@ -1,0 +1,277 @@
+@import "tailwindcss";
+
+@theme {
+  --color-primary: #15803d;
+  --color-primary-dark: #166534;
+  --color-secondary: #22c55e;
+  --color-accent: #f59e0b;
+  --color-background: #f8fafc;
+  --color-dark: #111827;
+  --color-muted: #6b7280;
+  --color-luxury-bg: #f7f4ed;
+  --color-luxury-primary: #0f3d2e;
+  --color-luxury-secondary: #1b5e20;
+  --color-luxury-accent: #f97316;
+  --color-luxury-dark: #12231b;
+  --color-luxury-card: rgb(14 27 18 / 0.75);
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-outfit: "Outfit", ui-sans-serif, system-ui, sans-serif;
+  --radius-card: 20px;
+  --shadow-soft: 0 4px 24px -4px rgb(17 24 39 / 0.08);
+  --shadow-card: 0 8px 40px -8px rgb(17 24 39 / 0.12);
+  --shadow-float: 0 20px 60px -12px rgb(21 128 61 / 0.15);
+  --shadow-luxury: 0 32px 80px -20px rgb(15 61 46 / 0.35);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply m-0 min-h-screen bg-background font-sans text-dark antialiased;
+  }
+
+  button,
+  input,
+  select {
+    font-family: inherit;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-primary;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply border border-white/40 bg-white/70 backdrop-blur-xl;
+  }
+
+  .glass-dark {
+    @apply border border-white/20 bg-white/10 backdrop-blur-xl;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent;
+  }
+
+  .input-glow:focus-within {
+    box-shadow: 0 0 0 3px rgb(21 128 61 / 0.15);
+  }
+
+  .popular-cities-swiper .swiper-button-prev,
+  .popular-cities-swiper .swiper-button-next {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    color: #15803d;
+  }
+
+  .popular-cities-swiper .swiper-button-prev::after,
+  .popular-cities-swiper .swiper-button-next::after {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .popular-cities-swiper .swiper-button-disabled {
+    opacity: 0.35;
+  }
+
+  .shimmer {
+    @apply relative overflow-hidden bg-gray-100;
+  }
+
+  .shimmer::after {
+    content: '';
+    @apply absolute inset-0;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgb(255 255 255 / 0.6) 50%,
+      transparent 100%
+    );
+    animation: shimmer 1.5s infinite;
+  }
+
+  @keyframes shimmer {
+    0% {
+      transform: translateX(-100%);
+    }
+    100% {
+      transform: translateX(100%);
+    }
+  }
+
+  .range-thumb {
+    pointer-events: none;
+  }
+
+  .range-thumb::-webkit-slider-thumb {
+    pointer-events: auto;
+    @apply h-5 w-5 cursor-pointer appearance-none rounded-full border-2 border-white bg-primary shadow-md;
+  }
+
+  .range-thumb::-moz-range-thumb {
+    pointer-events: auto;
+    @apply h-5 w-5 cursor-pointer rounded-full border-2 border-white bg-primary shadow-md;
+  }
+
+  .similar-cars-swiper .swiper-button-prev,
+  .similar-cars-swiper .swiper-button-next {
+    width: 40px;
+    height: 40px;
+    background: white;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+    color: #15803d;
+  }
+
+  .similar-cars-swiper .swiper-button-prev::after,
+  .similar-cars-swiper .swiper-button-next::after {
+    font-size: 14px;
+    font-weight: bold;
+  }
+
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .font-outfit {
+    font-family: var(--font-outfit);
+  }
+
+  .glass-luxury {
+    background: rgb(14 27 18 / 0.75);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid rgb(255 255 255 / 0.08);
+  }
+
+  .glass-luxury-bar {
+    background: rgb(14 27 18 / 0.55);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgb(255 255 255 / 0.1);
+  }
+
+  .text-luxury-gradient {
+    background: linear-gradient(135deg, #f97316 0%, #fb923c 100%);
+  }
+
+  .suv-reflection {
+    -webkit-box-reflect: below -12px
+      linear-gradient(transparent 55%, rgb(0 0 0 / 0.25));
+  }
+
+  .hero-ray {
+    background: linear-gradient(
+      105deg,
+      transparent 40%,
+      rgb(255 255 255 / 0.06) 45%,
+      transparent 50%
+    );
+  }
+
+  @keyframes float-suv {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-12px);
+    }
+  }
+
+  .animate-float-suv {
+    animation: float-suv 5s ease-in-out infinite;
+  }
+
+  @keyframes particle-drift {
+    0%,
+    100% {
+      opacity: 0.3;
+      transform: translateY(0) translateX(0);
+    }
+    50% {
+      opacity: 0.6;
+      transform: translateY(-20px) translateX(10px);
+    }
+  }
+
+  .animate-particle {
+    animation: particle-drift 8s ease-in-out infinite;
+  }
+
+  .cinematic-video-wrap {
+    @apply absolute inset-0 overflow-hidden bg-black;
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    min-width: 100%;
+  }
+
+  .cinematic-video {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    min-width: 100%;
+    min-height: 100%;
+    width: auto;
+    height: auto;
+    max-width: none;
+    transform: translate(-50%, -50%);
+    object-fit: cover;
+    object-position: center center;
+  }
+
+  /* Portrait phones — keep SUV in frame */
+  @media (max-aspect-ratio: 9/16) {
+    .cinematic-video {
+      object-position: center 38%;
+      min-width: 120%;
+      min-height: 100%;
+    }
+  }
+
+  @media (min-aspect-ratio: 9/16) and (max-aspect-ratio: 3/4) {
+    .cinematic-video {
+      object-position: center 42%;
+    }
+  }
+
+  /* Tablets */
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .cinematic-video {
+      object-position: center 45%;
+    }
+  }
+
+  /* Ultrawide — avoid excessive side crop */
+  @media (min-aspect-ratio: 21/9) {
+    .cinematic-video {
+      min-width: 100%;
+      min-height: 110%;
+      object-position: center center;
+    }
+  }
+
+  .luxury-input {
+    @apply w-full border-0 bg-transparent py-3 font-outfit text-sm text-white outline-none;
+  }
+
+  .search-edit-input {
+    @apply w-full border-0 bg-transparent text-sm font-medium text-dark outline-none;
+  }
+}
