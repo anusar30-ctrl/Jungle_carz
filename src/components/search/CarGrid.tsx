@@ -16,8 +16,14 @@ export function CarGrid({ cars, view, tripDays }: CarGridProps) {
           : 'flex flex-col gap-5'
       }
     >
-      {cars.map((car) => (
-        <CarCard key={car.id} car={car} view={view} tripDays={tripDays} />
+      {cars.map((car, index) => (
+        <CarCard
+          key={car.id}
+          car={car}
+          view={view}
+          tripDays={tripDays}
+          priority={index < 4}
+        />
       ))}
     </div>
   )

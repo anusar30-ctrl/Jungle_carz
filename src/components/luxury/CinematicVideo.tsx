@@ -16,8 +16,16 @@ interface CinematicVideoProps {
   onTimeUpdate?: (currentTime: number) => void
   onEnded?: () => void
   onPlaying?: () => void
+  onLoadedMetadata?: () => void
   onAutoplayBlocked?: () => void
   startTime?: number
+}
+
+function isAutoplayBlockedError(error: unknown): boolean {
+  return (
+    error instanceof DOMException &&
+    (error.name === 'NotAllowedError' || error.name === 'AbortError')
+  )
 }
 
 export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoProps>(
@@ -31,6 +39,7 @@ export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoPro
       onTimeUpdate,
       onEnded,
       onPlaying,
+      onLoadedMetadata,
       onAutoplayBlocked,
       startTime,
     },
@@ -40,14 +49,16 @@ export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoPro
     const onTimeUpdateRef = useRef(onTimeUpdate)
     const onEndedRef = useRef(onEnded)
     const onPlayingRef = useRef(onPlaying)
+    const onLoadedMetadataRef = useRef(onLoadedMetadata)
     const onAutoplayBlockedRef = useRef(onAutoplayBlocked)
 
     useEffect(() => {
       onTimeUpdateRef.current = onTimeUpdate
       onEndedRef.current = onEnded
       onPlayingRef.current = onPlaying
+      onLoadedMetadataRef.current = onLoadedMetadata
       onAutoplayBlockedRef.current = onAutoplayBlocked
-    }, [onTimeUpdate, onEnded, onPlaying, onAutoplayBlocked])
+    }, [onTimeUpdate, onEnded, onPlaying, onLoadedMetadata, onAutoplayBlocked])
 
     useImperativeHandle(ref, () => ({
       seekTo: (time: number) => {
@@ -59,7 +70,7 @@ export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoPro
       pause: () => videoRef.current?.pause(),
       play: () => {
         videoRef.current?.play().catch(() => {
-          // Imperative play (e.g. hero controls) — failure is non-fatal.
+          // Manual play retry — non-fatal.
         })
       },
       getCurrentTime: () => videoRef.current?.currentTime ?? 0,
@@ -75,21 +86,36 @@ export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoPro
       let canplayRetryUsed = false
       let canplayRetryHandler: (() => void) | null = null
 
+      const notifyAutoplayBlocked = () => {
+        onAutoplayBlockedRef.current?.()
+      }
+
+      const retryPlay = () => {
+        video.play().catch((error: unknown) => {
+          if (isAutoplayBlockedError(error)) notifyAutoplayBlocked()
+        })
+      }
+
       const attemptAutoplay = () => {
         if (paused || !autoPlay) return
 
-        const retryPlay = () => {
-          video.play().catch(() => {
-            onAutoplayBlockedRef.current?.()
-          })
-        }
-
-        video.play().catch(() => {
-          if (canplayRetryUsed) {
-            onAutoplayBlockedRef.current?.()
+        video.play().catch((error: unknown) => {
+          if (isAutoplayBlockedError(error)) {
+            if (canplayRetryUsed) {
+              notifyAutoplayBlocked()
+              return
+            }
+            canplayRetryUsed = true
+            if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+              retryPlay()
+            } else {
+              canplayRetryHandler = retryPlay
+              video.addEventListener('canplay', canplayRetryHandler, { once: true })
+            }
             return
           }
 
+          if (canplayRetryUsed) return
           canplayRetryUsed = true
           if (video.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
             retryPlay()
@@ -119,18 +145,29 @@ export const CinematicVideo = forwardRef<CinematicVideoHandle, CinematicVideoPro
         onPlayingRef.current?.()
       }
 
+      const handleLoadedMetadata = () => {
+        onLoadedMetadataRef.current?.()
+      }
+
       video.addEventListener('loadeddata', handleLoaded)
+      video.addEventListener('loadedmetadata', handleLoadedMetadata)
       video.addEventListener('timeupdate', handleTimeUpdate)
       video.addEventListener('ended', handleEnded)
       video.addEventListener('playing', handlePlaying)
 
-      if (video.readyState >= 2) handleLoaded()
+      if (video.readyState >= HTMLMediaElement.HAVE_METADATA) {
+        handleLoadedMetadata()
+      }
+      if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) {
+        handleLoaded()
+      }
 
       return () => {
         if (canplayRetryHandler) {
           video.removeEventListener('canplay', canplayRetryHandler)
         }
         video.removeEventListener('loadeddata', handleLoaded)
+        video.removeEventListener('loadedmetadata', handleLoadedMetadata)
         video.removeEventListener('timeupdate', handleTimeUpdate)
         video.removeEventListener('ended', handleEnded)
         video.removeEventListener('playing', handlePlaying)

@@ -39,6 +39,9 @@ export function ImageGallery({ images, badges = [], carId }: ImageGalleryProps) 
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
             className="h-full w-full cursor-zoom-in object-cover transition-transform duration-500 group-hover:scale-105"
+            loading="eager"
+            fetchPriority="high"
+            decoding="async"
             onClick={() => setFullscreen(true)}
           />
 

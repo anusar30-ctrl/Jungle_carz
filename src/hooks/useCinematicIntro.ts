@@ -1,31 +1,42 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import type { RefObject } from 'react'
 import {
-  HERO_VIDEO_SRC,
   INTRO_FADE_MS,
   INTRO_HOLD_END,
   INTRO_LOGO_AT,
-} from '../../constants/luxury'
-import { LogoReveal } from './LogoReveal'
-import { CinematicVideo } from './CinematicVideo'
+} from '../constants/luxury'
+import type { CinematicVideoHandle } from '../components/luxury/CinematicVideo'
 
-/** Grace period before skipping intro when playback never starts (ms). */
-const INTRO_AUTOPLAY_GRACE_MS = 2500
+/** Only skip when the video file never begins loading (ms). */
+const INTRO_LOAD_FAILSAFE_MS = 12_000
 
-interface CinematicIntroProps {
+/** After confirmed autoplay denial, wait for a tap before skipping (ms). */
+const INTRO_TAP_GRACE_MS = 4_000
+
+interface UseCinematicIntroOptions {
+  videoRef: RefObject<CinematicVideoHandle | null>
   onComplete: (holdTime: number) => void
+  enabled: boolean
 }
 
 type IntroPhase = 'playing' | 'fading' | 'done'
 
-export function CinematicIntro({ onComplete }: CinematicIntroProps) {
+export function useCinematicIntro({
+  videoRef,
+  onComplete,
+  enabled,
+}: UseCinematicIntroOptions) {
   const [phase, setPhase] = useState<IntroPhase>('playing')
   const [showLogo, setShowLogo] = useState(false)
   const [blackOpacity, setBlackOpacity] = useState(0)
+  const [needsTap, setNeedsTap] = useState(false)
+
   const fadeStarted = useRef(false)
   const completed = useRef(false)
   const logoShown = useRef(false)
   const playbackStarted = useRef(false)
+  const hasMetadata = useRef(false)
+  const autoplayDenied = useRef(false)
   const holdTimeRef = useRef(INTRO_LOGO_AT)
 
   const finishIntro = useCallback(
@@ -43,7 +54,7 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
   }, [finishIntro])
 
   const startFadeToBlack = useCallback(() => {
-    if (fadeStarted.current) return
+    if (fadeStarted.current || completed.current) return
     fadeStarted.current = true
     setPhase('fading')
 
@@ -62,11 +73,22 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
 
   const handlePlaying = useCallback(() => {
     playbackStarted.current = true
+    setNeedsTap(false)
+  }, [])
+
+  const handleLoadedMetadata = useCallback(() => {
+    hasMetadata.current = true
   }, [])
 
   const handleAutoplayBlocked = useCallback(() => {
-    skipIntro()
-  }, [skipIntro])
+    if (playbackStarted.current || completed.current) return
+    autoplayDenied.current = true
+    setNeedsTap(true)
+  }, [])
+
+  const retryPlay = useCallback(() => {
+    videoRef.current?.play()
+  }, [videoRef])
 
   const handleTimeUpdate = useCallback(
     (t: number) => {
@@ -89,53 +111,50 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
   }, [startFadeToBlack])
 
   useEffect(() => {
+    if (!enabled) return
     document.body.style.overflow = 'hidden'
     return () => {
       document.body.style.overflow = ''
     }
-  }, [])
+  }, [enabled])
 
   useEffect(() => {
-    const id = window.setTimeout(() => {
-      if (!playbackStarted.current && !completed.current) {
-        skipIntro()
-      }
-    }, INTRO_AUTOPLAY_GRACE_MS)
+    if (!enabled) return
 
-    return () => window.clearTimeout(id)
-  }, [skipIntro])
+    const loadFailsafeId = window.setTimeout(() => {
+      if (completed.current || playbackStarted.current) return
+      if (!hasMetadata.current) skipIntro()
+    }, INTRO_LOAD_FAILSAFE_MS)
 
-  return (
-    <AnimatePresence>
-      {phase !== 'done' && (
-        <motion.div
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[200] flex min-h-[100dvh] w-full items-center justify-center bg-black supports-[min-height:100svh]:min-h-[100svh]"
-          style={{
-            paddingTop: 'env(safe-area-inset-top)',
-            paddingBottom: 'env(safe-area-inset-bottom)',
-          }}
-          aria-label="Jungle Carz cinematic intro"
-        >
-          <CinematicVideo
-            src={HERO_VIDEO_SRC}
-            autoPlay
-            paused={false}
-            onPlaying={handlePlaying}
-            onAutoplayBlocked={handleAutoplayBlocked}
-            onTimeUpdate={handleTimeUpdate}
-            onEnded={handleEnded}
-            className="!absolute inset-0 h-full w-full"
-          />
+    return () => window.clearTimeout(loadFailsafeId)
+  }, [enabled, skipIntro])
 
-          {showLogo && <LogoReveal />}
+  useEffect(() => {
+    if (!enabled || !needsTap) return
 
-          <div
-            className="pointer-events-none absolute inset-0 z-10 bg-black transition-none"
-            style={{ opacity: blackOpacity }}
-          />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  )
+    const tapGraceId = window.setTimeout(() => {
+      if (!playbackStarted.current && !completed.current) skipIntro()
+    }, INTRO_TAP_GRACE_MS)
+
+    return () => window.clearTimeout(tapGraceId)
+  }, [enabled, needsTap, skipIntro])
+
+  return {
+    overlay: {
+      phase,
+      showLogo,
+      blackOpacity,
+      needsTap,
+      onTap: retryPlay,
+    },
+    videoCallbacks: enabled
+      ? {
+          onPlaying: handlePlaying,
+          onLoadedMetadata: handleLoadedMetadata,
+          onAutoplayBlocked: handleAutoplayBlocked,
+          onTimeUpdate: handleTimeUpdate,
+          onEnded: handleEnded,
+        }
+      : {},
+  }
 }

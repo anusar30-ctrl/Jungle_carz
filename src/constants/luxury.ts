@@ -80,3 +80,11 @@ export const INTRO_FADE_MS = 900
 
 /** Landing page fade-in duration (ms) */
 export const LANDING_FADE_MS = 1100
+
+export type LuxuryBookingMode = 'self-drive' | 'with-driver' | 'tourism'
+
+export const LUXURY_BOOKING_MODES: { id: LuxuryBookingMode; label: string }[] = [
+  { id: 'self-drive', label: 'Self Drive' },
+  { id: 'with-driver', label: 'With Driver' },
+  { id: 'tourism', label: 'Tourism' },
+]

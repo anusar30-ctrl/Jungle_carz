@@ -23,9 +23,10 @@ interface CarCardProps {
   car: CarListing
   view: ViewMode
   tripDays: number
+  priority?: boolean
 }
 
-export function CarCard({ car, view, tripDays }: CarCardProps) {
+export function CarCard({ car, view, tripDays, priority = false }: CarCardProps) {
   const navigate = useNavigate()
   const [imgIndex, setImgIndex] = useState(0)
   const totalCost = car.pricePerDay * tripDays
@@ -72,7 +73,9 @@ export function CarCard({ car, view, tripDays }: CarCardProps) {
             src={car.images[imgIndex]}
             alt={car.name}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            loading="lazy"
+            loading={priority ? 'eager' : 'lazy'}
+            fetchPriority={priority ? 'high' : 'auto'}
+            decoding="async"
           />
           {car.images.length > 1 && (
             <>

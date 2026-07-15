@@ -1,7 +1,5 @@
-import { useRef } from 'react'
 import { motion } from 'framer-motion'
 import { HeroContent } from './HeroContent'
-import { HeroVideo, type HeroVideoHandle } from './HeroVideo'
 import { LuxuryBookingCard } from './LuxuryBookingCard'
 import { FeatureBar } from './FeatureBar'
 import { VIDEO_HOLD_TIME } from '../../constants/luxury'
@@ -13,10 +11,8 @@ interface LuxuryHeroProps {
 
 export function LuxuryHero({
   visible = true,
-  videoHoldTime = VIDEO_HOLD_TIME,
+  videoHoldTime: _videoHoldTime = VIDEO_HOLD_TIME,
 }: LuxuryHeroProps) {
-  const videoRef = useRef<HeroVideoHandle>(null)
-
   return (
     <motion.section
       id="home"
@@ -25,13 +21,6 @@ export function LuxuryHero({
       transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
       className="relative flex min-h-[100dvh] flex-col supports-[min-height:100svh]:min-h-[100svh]"
     >
-      <HeroVideo
-        ref={videoRef}
-        paused
-        holdTime={videoHoldTime}
-        showOverlay
-      />
-
       <div className="relative z-10 flex flex-1 flex-col px-4 pt-24 pb-8 sm:px-6 sm:pt-28 sm:pb-10 md:px-10 lg:px-14">
         <div className="flex flex-1 flex-col gap-6 sm:gap-8 lg:grid lg:grid-cols-[1fr_minmax(0,400px)] lg:items-end lg:gap-10">
           <HeroContent />

@@ -1,33 +1,39 @@
 import { motion } from 'framer-motion'
-import type { RentalType } from '../../types'
-import { RENTAL_TYPES } from '../../constants/data'
-import { Car, UserRound } from 'lucide-react'
+import { Car, MapPinned, UserRound } from 'lucide-react'
+import {
+  LUXURY_BOOKING_MODES,
+  type LuxuryBookingMode,
+} from '../../constants/luxury'
 
 interface LuxuryRentalTabsProps {
-  value: RentalType
-  onChange: (type: RentalType) => void
+  value: LuxuryBookingMode
+  onChange: (mode: LuxuryBookingMode) => void
 }
 
-const icons = { 'self-drive': Car, 'with-driver': UserRound } as const
+const icons = {
+  'self-drive': Car,
+  'with-driver': UserRound,
+  tourism: MapPinned,
+} as const
 
 export function LuxuryRentalTabs({ value, onChange }: LuxuryRentalTabsProps) {
   return (
     <div
       role="tablist"
-      aria-label="Rental type"
+      aria-label="Booking type"
       className="flex rounded-2xl bg-white/5 p-1"
     >
-      {RENTAL_TYPES.map((type) => {
-        const Icon = icons[type.id]
-        const active = value === type.id
+      {LUXURY_BOOKING_MODES.map((mode) => {
+        const Icon = icons[mode.id]
+        const active = value === mode.id
         return (
           <button
-            key={type.id}
+            key={mode.id}
             type="button"
             role="tab"
             aria-selected={active}
-            onClick={() => onChange(type.id)}
-            className={`relative flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 font-outfit text-sm font-semibold transition-colors ${
+            onClick={() => onChange(mode.id)}
+            className={`relative flex flex-1 items-center justify-center gap-1.5 rounded-xl py-2.5 font-outfit text-xs font-semibold transition-colors sm:gap-2 sm:text-sm ${
               active ? 'text-white' : 'text-white/50 hover:text-white/80'
             }`}
           >
@@ -38,8 +44,8 @@ export function LuxuryRentalTabs({ value, onChange }: LuxuryRentalTabsProps) {
                 transition={{ type: 'spring', stiffness: 400, damping: 30 }}
               />
             )}
-            <Icon className="relative h-4 w-4" />
-            <span className="relative">{type.label}</span>
+            <Icon className="relative h-4 w-4 shrink-0" />
+            <span className="relative">{mode.label}</span>
           </button>
         )
       })}

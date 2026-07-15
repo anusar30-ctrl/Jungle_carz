@@ -8,7 +8,7 @@ import {
   Search,
   Tag,
 } from 'lucide-react'
-import type { RentalType } from '../../types'
+import type { LuxuryBookingMode } from '../../constants/luxury'
 import {
   LUXURY_LOCATIONS,
   VEHICLE_TYPES,
@@ -21,7 +21,7 @@ const DEFAULT_DROP = toDatetimeLocal('2026-08-23', '18:00')
 
 export function LuxuryBookingCard() {
   const navigate = useNavigate()
-  const [rentalType, setRentalType] = useState<RentalType>('self-drive')
+  const [bookingMode, setBookingMode] = useState<LuxuryBookingMode>('self-drive')
   const [pickupCity, setPickupCity] = useState('')
   const [pickupDatetime, setPickupDatetime] = useState('')
   const [dropDatetime, setDropDatetime] = useState('')
@@ -49,8 +49,12 @@ export function LuxuryBookingCard() {
         drop: drop.date,
         pickupTime: pickup.time,
         dropTime: drop.time,
-        type: rentalType,
       })
+      if (bookingMode === 'tourism') {
+        params.set('category', 'tourism')
+      } else {
+        params.set('type', bookingMode)
+      }
       navigate(`/search?${params.toString()}`)
     }, 900)
   }
@@ -84,7 +88,7 @@ export function LuxuryBookingCard() {
           </p>
 
           <div className="mt-5">
-            <LuxuryRentalTabs value={rentalType} onChange={setRentalType} />
+            <LuxuryRentalTabs value={bookingMode} onChange={setBookingMode} />
           </div>
 
           <form onSubmit={handleSearch} className="mt-5 space-y-3">
