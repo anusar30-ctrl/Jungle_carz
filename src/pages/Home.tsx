@@ -25,19 +25,21 @@ export function Home() {
     <div className="min-h-[100dvh] bg-black">
       {!introComplete && <CinematicIntro onComplete={handleIntroComplete} />}
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: introComplete ? 1 : 0 }}
-        transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
-        className="min-h-[100dvh] w-full"
-      >
-        <div className="relative">
-          <LuxuryNavbar visible={introComplete} />
-          <LuxuryHero visible={introComplete} videoHoldTime={holdTime} />
-        </div>
-        <TrustedCompanies />
-        <LuxuryFooter />
-      </motion.div>
+      {introComplete && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.1, ease: [0.22, 1, 0.36, 1] }}
+          className="min-h-[100dvh] w-full"
+        >
+          <div className="relative">
+            <LuxuryNavbar visible />
+            <LuxuryHero visible videoHoldTime={holdTime} />
+          </div>
+          <TrustedCompanies />
+          <LuxuryFooter />
+        </motion.div>
+      )}
     </div>
   )
 }

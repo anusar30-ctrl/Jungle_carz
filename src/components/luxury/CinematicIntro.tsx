@@ -9,6 +9,9 @@ import {
 import { LogoReveal } from './LogoReveal'
 import { CinematicVideo } from './CinematicVideo'
 
+/** Grace period before skipping intro when playback never starts (ms). */
+const INTRO_AUTOPLAY_GRACE_MS = 2500
+
 interface CinematicIntroProps {
   onComplete: (holdTime: number) => void
 }
@@ -22,7 +25,22 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
   const fadeStarted = useRef(false)
   const completed = useRef(false)
   const logoShown = useRef(false)
+  const playbackStarted = useRef(false)
   const holdTimeRef = useRef(INTRO_LOGO_AT)
+
+  const finishIntro = useCallback(
+    (holdTime: number) => {
+      if (completed.current) return
+      completed.current = true
+      setPhase('done')
+      onComplete(holdTime)
+    },
+    [onComplete],
+  )
+
+  const skipIntro = useCallback(() => {
+    finishIntro(holdTimeRef.current)
+  }, [finishIntro])
 
   const startFadeToBlack = useCallback(() => {
     if (fadeStarted.current) return
@@ -35,14 +53,20 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
       setBlackOpacity(t)
       if (t < 1) {
         requestAnimationFrame(tick)
-      } else if (!completed.current) {
-        completed.current = true
-        setPhase('done')
-        onComplete(holdTimeRef.current)
+      } else {
+        finishIntro(holdTimeRef.current)
       }
     }
     requestAnimationFrame(tick)
-  }, [onComplete])
+  }, [finishIntro])
+
+  const handlePlaying = useCallback(() => {
+    playbackStarted.current = true
+  }, [])
+
+  const handleAutoplayBlocked = useCallback(() => {
+    skipIntro()
+  }, [skipIntro])
 
   const handleTimeUpdate = useCallback(
     (t: number) => {
@@ -71,6 +95,16 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
     }
   }, [])
 
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      if (!playbackStarted.current && !completed.current) {
+        skipIntro()
+      }
+    }, INTRO_AUTOPLAY_GRACE_MS)
+
+    return () => window.clearTimeout(id)
+  }, [skipIntro])
+
   return (
     <AnimatePresence>
       {phase !== 'done' && (
@@ -87,6 +121,8 @@ export function CinematicIntro({ onComplete }: CinematicIntroProps) {
             src={HERO_VIDEO_SRC}
             autoPlay
             paused={false}
+            onPlaying={handlePlaying}
+            onAutoplayBlocked={handleAutoplayBlocked}
             onTimeUpdate={handleTimeUpdate}
             onEnded={handleEnded}
             className="!absolute inset-0 h-full w-full"
