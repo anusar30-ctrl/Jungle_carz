@@ -3,6 +3,7 @@ import { Role } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { isSuperAdminEmail } from '../constants/superAdmin.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
+import type { IdParams } from '../types/express.js'
 
 const router = Router()
 
@@ -33,14 +34,16 @@ router.get('/', requireAuth, requireAdmin, async (_req, res) => {
   })
 })
 
-router.patch('/:id/role', requireAuth, requireAdmin, async (req: AuthedRequest, res) => {
+router.patch('/:id/role', requireAuth, requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
   const role = String(req.body.role || '').toLowerCase()
   if (role !== 'admin' && role !== 'user') {
     return res.status(400).json({ error: 'Invalid role' })
   }
 
+  const { id } = req.params
+
   try {
-    const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+    const existing = await prisma.user.findUnique({ where: { id } })
     if (!existing) return res.status(404).json({ error: 'User not found' })
 
     if (isSuperAdminEmail(existing.email) && role !== 'admin') {
@@ -48,7 +51,7 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req: AuthedRequest, 
     }
 
     const user = await prisma.user.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { role: role === 'admin' ? Role.ADMIN : Role.USER },
     })
     return res.json({
@@ -67,20 +70,22 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req: AuthedRequest, 
   }
 })
 
-router.delete('/:id', requireAuth, requireAdmin, async (req: AuthedRequest, res) => {
-  if (req.params.id === req.user!.userId) {
+router.delete('/:id', requireAuth, requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
+  const { id } = req.params
+
+  if (id === req.user!.userId) {
     return res.status(400).json({ error: 'Cannot delete your own account' })
   }
 
   try {
-    const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+    const existing = await prisma.user.findUnique({ where: { id } })
     if (!existing) return res.status(404).json({ error: 'User not found' })
 
     if (isSuperAdminEmail(existing.email)) {
       return res.status(400).json({ error: 'Cannot delete the super admin account' })
     }
 
-    await prisma.user.delete({ where: { id: req.params.id } })
+    await prisma.user.delete({ where: { id } })
     return res.json({ ok: true })
   } catch {
     return res.status(404).json({ error: 'User not found' })

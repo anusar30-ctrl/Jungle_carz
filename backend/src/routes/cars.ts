@@ -1,8 +1,9 @@
-import { Router } from 'express'
+import { Router, type Request } from 'express'
 import { CarCategory, Prisma } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
+import type { IdParams } from '../types/express.js'
 
 const router = Router()
 
@@ -126,8 +127,9 @@ router.get('/', async (req, res) => {
   return res.json({ cars: cars.map(mapCar) })
 })
 
-router.get('/:id', async (req, res) => {
-  const car = await prisma.car.findUnique({ where: { id: req.params.id } })
+router.get('/:id', async (req: Request<IdParams>, res) => {
+  const { id } = req.params
+  const car = await prisma.car.findUnique({ where: { id } })
   if (!car) return res.status(404).json({ error: 'Car not found' })
   return res.json({ car: mapCar(car) })
 })
@@ -182,16 +184,18 @@ router.post('/', requireAdmin, async (req: AuthedRequest, res) => {
   return res.status(201).json({ car: mapCar(car) })
 })
 
-router.put('/:id', requireAdmin, async (req: AuthedRequest, res) => {
+router.put('/:id', requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
   const parsed = carBodySchema.partial().safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message })
   }
 
+  const { id } = req.params
+
   try {
     const data = parsed.data
     const car = await prisma.car.update({
-      where: { id: req.params.id },
+      where: { id },
       data: {
         ...('brand' in data ? { brand: data.brand } : {}),
         ...('model' in data ? { model: data.model } : {}),
@@ -248,9 +252,11 @@ router.put('/:id', requireAdmin, async (req: AuthedRequest, res) => {
   }
 })
 
-router.delete('/:id', requireAdmin, async (req: AuthedRequest, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
+  const { id } = req.params
+
   try {
-    await prisma.car.delete({ where: { id: req.params.id } })
+    await prisma.car.delete({ where: { id } })
     return res.json({ ok: true })
   } catch {
     return res.status(404).json({ error: 'Car not found' })

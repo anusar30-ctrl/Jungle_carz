@@ -1,9 +1,8 @@
-import type { NextFunction, Request, Response } from 'express'
-import { verifyToken, type AuthTokenPayload } from '../lib/auth.js'
+import type { NextFunction, Response } from 'express'
+import { verifyToken } from '../lib/auth.js'
+import type { AuthedRequest } from '../types/express.js'
 
-export interface AuthedRequest extends Request {
-  user?: AuthTokenPayload
-}
+export type { AuthedRequest } from '../types/express.js'
 
 export function requireAuth(
   req: AuthedRequest,

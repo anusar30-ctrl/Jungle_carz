@@ -1,8 +1,9 @@
-import { Router } from 'express'
+import { Router, type Request } from 'express'
 import { BookingStatus, RentalType } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
+import type { IdParams } from '../types/express.js'
 
 const router = Router()
 
@@ -142,15 +143,17 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   return res.status(201).json({ booking: mapBooking(booking) })
 })
 
-router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
+router.patch('/:id/status', requireAuth, requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
   const status = String(req.body.status || '').toUpperCase() as BookingStatus
   if (!Object.values(BookingStatus).includes(status)) {
     return res.status(400).json({ error: 'Invalid status' })
   }
 
+  const { id } = req.params
+
   try {
     const booking = await prisma.booking.update({
-      where: { id: req.params.id },
+      where: { id },
       data: { status },
     })
     return res.json({ booking: mapBooking(booking) })
@@ -159,9 +162,11 @@ router.patch('/:id/status', requireAuth, requireAdmin, async (req, res) => {
   }
 })
 
-router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+router.delete('/:id', requireAuth, requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
+  const { id } = req.params
+
   try {
-    await prisma.booking.delete({ where: { id: req.params.id } })
+    await prisma.booking.delete({ where: { id } })
     return res.json({ ok: true })
   } catch {
     return res.status(404).json({ error: 'Booking not found' })
