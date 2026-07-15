@@ -29,6 +29,16 @@ npm run dev
 
 API: `http://localhost:4000`
 
+## Super admin (stored in MySQL)
+
+Run `npm run db:seed` once — it creates the admin account **in the database** (no `.env` login needed):
+
+| Email | Password |
+|-------|----------|
+| `superadmin@junglecarz.com` | `JungleSuperAdmin@2026` |
+
+After that, just log in at `/login` — credentials are read from MySQL like any user.
+
 ## Endpoints
 
 - `GET /api/health`
@@ -40,3 +50,4 @@ API: `http://localhost:4000`
 - `GET /api/users` (admin)
 - `GET /api/favorites`
 - `GET /api/admin/stats`
+- `POST /api/uploads/car-images` (admin, multipart — car photos)

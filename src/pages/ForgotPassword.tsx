@@ -47,7 +47,7 @@ export function ForgotPassword() {
             instructions shortly.
           </p>
           <p className="mt-4 text-xs text-muted">
-            (Demo mode — no email is actually sent.)
+            (Password reset is not connected to the server yet — no email is sent.)
           </p>
         </div>
       ) : (

@@ -2,44 +2,44 @@ import 'dotenv/config'
 import { CarCategory, Provider, Role } from '@prisma/client'
 import { prisma } from '../src/lib/prisma.js'
 import { hashPassword } from '../src/lib/auth.js'
+import {
+  SUPER_ADMIN_EMAIL,
+  SUPER_ADMIN_INITIAL,
+} from '../src/constants/superAdmin.js'
+
+const LEGACY_DUMMY_EMAILS = ['demo@junglecarz.com', 'admin@junglecarz.com']
 
 async function main() {
-  const adminHash = await hashPassword('admin123')
-  const demoHash = await hashPassword('demo123')
-
-  await prisma.user.upsert({
-    where: { email: 'admin@junglecarz.com' },
-    update: {
-      passwordHash: adminHash,
-      role: Role.ADMIN,
-      fullName: 'Jungle Admin',
-    },
-    create: {
-      email: 'admin@junglecarz.com',
-      passwordHash: adminHash,
-      fullName: 'Jungle Admin',
-      mobile: '9999999999',
-      provider: Provider.EMAIL,
-      role: Role.ADMIN,
-    },
+  // Remove old demo accounts
+  await prisma.user.deleteMany({
+    where: { email: { in: LEGACY_DUMMY_EMAILS } },
   })
 
-  await prisma.user.upsert({
-    where: { email: 'demo@junglecarz.com' },
-    update: {
-      passwordHash: demoHash,
-      role: Role.USER,
-      fullName: 'Demo User',
-    },
-    create: {
-      email: 'demo@junglecarz.com',
-      passwordHash: demoHash,
-      fullName: 'Demo User',
-      mobile: '9876543210',
-      provider: Provider.EMAIL,
-      role: Role.USER,
-    },
+  const existing = await prisma.user.findUnique({
+    where: { email: SUPER_ADMIN_EMAIL },
   })
+
+  if (!existing) {
+    await prisma.user.create({
+      data: {
+        email: SUPER_ADMIN_EMAIL,
+        passwordHash: await hashPassword(SUPER_ADMIN_INITIAL.password),
+        fullName: SUPER_ADMIN_INITIAL.fullName,
+        mobile: SUPER_ADMIN_INITIAL.mobile,
+        provider: Provider.EMAIL,
+        role: Role.ADMIN,
+      },
+    })
+    console.log('Created super admin in database:')
+    console.log(`  Email:    ${SUPER_ADMIN_EMAIL}`)
+    console.log(`  Password: ${SUPER_ADMIN_INITIAL.password}`)
+  } else {
+    await prisma.user.update({
+      where: { email: SUPER_ADMIN_EMAIL },
+      data: { role: Role.ADMIN },
+    })
+    console.log(`Super admin already in database: ${SUPER_ADMIN_EMAIL}`)
+  }
 
   const carCount = await prisma.car.count()
   if (carCount === 0) {
@@ -147,8 +147,6 @@ async function main() {
   }
 
   console.log('Seed complete:')
-  console.log('  admin@junglecarz.com / admin123')
-  console.log('  demo@junglecarz.com / demo123')
   console.log(`  cars in DB: ${await prisma.car.count()}`)
 }
 

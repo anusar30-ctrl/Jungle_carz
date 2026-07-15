@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { Role } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
+import { isSuperAdminEmail } from '../constants/superAdmin.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
 
 const router = Router()
@@ -39,6 +40,13 @@ router.patch('/:id/role', requireAuth, requireAdmin, async (req: AuthedRequest, 
   }
 
   try {
+    const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+    if (!existing) return res.status(404).json({ error: 'User not found' })
+
+    if (isSuperAdminEmail(existing.email) && role !== 'admin') {
+      return res.status(400).json({ error: 'Cannot demote the super admin account' })
+    }
+
     const user = await prisma.user.update({
       where: { id: req.params.id },
       data: { role: role === 'admin' ? Role.ADMIN : Role.USER },
@@ -65,6 +73,13 @@ router.delete('/:id', requireAuth, requireAdmin, async (req: AuthedRequest, res)
   }
 
   try {
+    const existing = await prisma.user.findUnique({ where: { id: req.params.id } })
+    if (!existing) return res.status(404).json({ error: 'User not found' })
+
+    if (isSuperAdminEmail(existing.email)) {
+      return res.status(400).json({ error: 'Cannot delete the super admin account' })
+    }
+
     await prisma.user.delete({ where: { id: req.params.id } })
     return res.json({ ok: true })
   } catch {

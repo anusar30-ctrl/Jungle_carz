@@ -59,12 +59,6 @@ export function Login() {
           </div>
         )}
 
-        <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-dark/80">
-          <p className="font-semibold text-primary">Demo accounts</p>
-          <p className="mt-1">User — demo@junglecarz.com / demo123</p>
-          <p>Admin — admin@junglecarz.com / admin123</p>
-        </div>
-
         <AuthField
           id="email"
           label="Email"

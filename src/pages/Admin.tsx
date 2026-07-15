@@ -1,38 +1,36 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
   Calendar,
   Car,
   LayoutDashboard,
+  Loader2,
   LogOut,
   Plus,
   Trash2,
   Users,
   X,
 } from 'lucide-react'
+import { fetchAdminStats, type AdminStats } from '../api/admin'
+import { deleteUser, fetchAllUsers, updateUserRole } from '../api/users'
 import { useAuth } from '../context/AuthContext'
 import {
   addCar,
   deleteCar,
-  getAllCars,
-  resetCarsToSeed,
+  fetchAllCars,
   updateCar,
   type CarFormInput,
 } from '../utils/carsStorage'
 import {
   deleteBooking,
-  getBookingRequests,
+  fetchAllBookings,
   updateBookingStatus,
 } from '../utils/bookingStorage'
-import {
-  deleteUserAccount,
-  getAllUsersForAdmin,
-  setUserRole,
-} from '../utils/authStorage'
 import type { CarListing, FuelType, Transmission, VehicleType } from '../types/search'
 import type { BookingRequest, BookingStatus } from '../types/booking'
 import type { AdminUserView, UserRole } from '../types/auth'
 import { formatCurrency } from '../hooks/useCarFilters'
+import { CarImageUpload } from '../components/admin/CarImageUpload'
 
 type Tab = 'overview' | 'cars' | 'bookings' | 'users'
 
@@ -50,7 +48,7 @@ const emptyCarForm: CarFormInput = {
   pricePerDay: 2500,
   originalPrice: 3000,
   securityDeposit: 5000,
-  images: [''],
+  images: [],
   featureChips: ['FastTag Included', 'ABS', 'Airbags'],
   amenities: { ac: true, bluetooth: true, gps: true },
   badges: ['available'],
@@ -67,33 +65,54 @@ const emptyCarForm: CarFormInput = {
 export function Admin() {
   const { user, logout } = useAuth()
   const [tab, setTab] = useState<Tab>('overview')
-  const [cars, setCars] = useState(() => getAllCars())
-  const [bookings, setBookings] = useState(() => getBookingRequests())
-  const [users, setUsers] = useState(() => getAllUsersForAdmin())
+  const [cars, setCars] = useState<CarListing[]>([])
+  const [bookings, setBookings] = useState<BookingRequest[]>([])
+  const [users, setUsers] = useState<AdminUserView[]>([])
+  const [stats, setStats] = useState<AdminStats | null>(null)
+  const [loading, setLoading] = useState(true)
   const [showCarForm, setShowCarForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CarFormInput>(emptyCarForm)
   const [carQuery, setCarQuery] = useState('')
 
-  const refresh = () => {
-    setCars(getAllCars())
-    setBookings(getBookingRequests())
-    setUsers(getAllUsersForAdmin())
-  }
+  const refresh = useCallback(async () => {
+    setLoading(true)
+    try {
+      const [carsData, bookingsData, usersData, statsData] = await Promise.all([
+        fetchAllCars(),
+        fetchAllBookings(),
+        fetchAllUsers(),
+        fetchAdminStats(),
+      ])
+      setCars(carsData)
+      setBookings(bookingsData)
+      setUsers(usersData)
+      setStats(statsData)
+    } catch {
+      // Keep partial state on error
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
-  const stats = useMemo(
-    () => ({
-      cars: cars.length,
-      tourism: cars.filter((c) => c.category === 'tourism').length,
-      bookings: bookings.length,
-      pending: bookings.filter((b) => b.status === 'pending').length,
-      users: users.length,
-      admins: users.filter((u) => u.role === 'admin').length,
-      revenue: bookings
-        .filter((b) => b.status === 'confirmed' || b.status === 'completed')
-        .reduce((sum, b) => sum + b.total, 0),
-    }),
-    [cars, bookings, users],
+  useEffect(() => {
+    refresh()
+  }, [refresh])
+
+  const overviewStats = useMemo(
+    () =>
+      stats ?? {
+        cars: cars.length,
+        tourism: cars.filter((c) => c.category === 'tourism').length,
+        bookings: bookings.length,
+        pending: bookings.filter((b) => b.status === 'pending').length,
+        users: users.length,
+        admins: users.filter((u) => u.role === 'admin').length,
+        revenue: bookings
+          .filter((b) => b.status === 'confirmed' || b.status === 'completed')
+          .reduce((sum, b) => sum + b.total, 0),
+      },
+    [stats, cars, bookings, users],
   )
 
   const filteredCars = useMemo(() => {
@@ -149,18 +168,27 @@ export function Admin() {
     setShowCarForm(true)
   }
 
-  const saveCar = (e: React.FormEvent) => {
+  const saveCar = async (e: React.FormEvent) => {
     e.preventDefault()
+    const filteredImages = form.images.filter(Boolean)
+    if (filteredImages.length === 0) {
+      alert('Please upload at least one car image.')
+      return
+    }
     const payload: CarFormInput = {
       ...form,
       name: form.name || `${form.brand} ${form.model}`,
-      images: form.images.filter(Boolean),
+      images: filteredImages,
       featureChips: form.featureChips.filter(Boolean),
     }
-    if (editingId) updateCar(editingId, payload)
-    else addCar(payload)
-    setShowCarForm(false)
-    refresh()
+    try {
+      if (editingId) await updateCar(editingId, payload)
+      else await addCar(payload)
+      setShowCarForm(false)
+      await refresh()
+    } catch {
+      // Form stays open on error
+    }
   }
 
   const tabs: { id: Tab; label: string; icon: typeof Car }[] = [
@@ -223,14 +251,20 @@ export function Admin() {
           ))}
         </div>
 
-        {tab === 'overview' && (
+        {loading && tab === 'overview' && (
+          <div className="flex justify-center py-16">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        )}
+
+        {tab === 'overview' && !loading && (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Cars" value={String(stats.cars)} sub={`${stats.tourism} tourism`} />
-            <StatCard label="Bookings" value={String(stats.bookings)} sub={`${stats.pending} pending`} />
-            <StatCard label="Users" value={String(stats.users)} sub={`${stats.admins} admin`} />
+            <StatCard label="Total Cars" value={String(overviewStats.cars)} sub={`${overviewStats.tourism} tourism`} />
+            <StatCard label="Bookings" value={String(overviewStats.bookings)} sub={`${overviewStats.pending} pending`} />
+            <StatCard label="Users" value={String(overviewStats.users)} sub={`${overviewStats.admins} admin`} />
             <StatCard
               label="Confirmed Revenue"
-              value={formatCurrency(stats.revenue)}
+              value={formatCurrency(overviewStats.revenue)}
               sub="Confirmed + completed"
             />
           </div>
@@ -245,28 +279,14 @@ export function Admin() {
                 placeholder="Search cars..."
                 className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-3 text-sm sm:max-w-xs"
               />
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (confirm('Reset cars to default seed fleet?')) {
-                      resetCarsToSeed()
-                      refresh()
-                    }
-                  }}
-                  className="rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold"
-                >
-                  Reset fleet
-                </button>
-                <button
-                  type="button"
-                  onClick={openAdd}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add car
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={openAdd}
+                className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2.5 text-sm font-semibold text-white"
+              >
+                <Plus className="h-4 w-4" />
+                Add car
+              </button>
             </div>
 
             <div className="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-soft">
@@ -317,10 +337,10 @@ export function Admin() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => {
+                              onClick={async () => {
                                 if (confirm(`Delete ${car.name}?`)) {
-                                  deleteCar(car.id)
-                                  refresh()
+                                  await deleteCar(car.id)
+                                  await refresh()
                                 }
                               }}
                               className="rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600"
@@ -346,14 +366,15 @@ export function Admin() {
         {tab === 'bookings' && (
           <BookingsPanel
             bookings={bookings}
-            onStatus={(id, status) => {
-              updateBookingStatus(id, status)
-              refresh()
+            loading={loading}
+            onStatus={async (id, status) => {
+              await updateBookingStatus(id, status)
+              await refresh()
             }}
-            onDelete={(id) => {
+            onDelete={async (id) => {
               if (confirm('Delete this booking?')) {
-                deleteBooking(id)
-                refresh()
+                await deleteBooking(id)
+                await refresh()
               }
             }}
           />
@@ -362,14 +383,16 @@ export function Admin() {
         {tab === 'users' && (
           <UsersPanel
             users={users}
-            onRole={(id, role) => {
-              setUserRole(id, role)
-              refresh()
+            loading={loading}
+            currentUserId={user?.id}
+            onRole={async (id, role) => {
+              await updateUserRole(id, role)
+              await refresh()
             }}
-            onDelete={(id) => {
+            onDelete={async (id) => {
               if (confirm('Delete this user account?')) {
-                deleteUserAccount(id)
-                refresh()
+                await deleteUser(id)
+                await refresh()
               }
             }}
           />
@@ -409,16 +432,26 @@ function StatCard({
 
 function BookingsPanel({
   bookings,
+  loading,
   onStatus,
   onDelete,
 }: {
   bookings: BookingRequest[]
-  onStatus: (id: string, status: BookingStatus) => void
-  onDelete: (id: string) => void
+  loading?: boolean
+  onStatus: (id: string, status: BookingStatus) => void | Promise<void>
+  onDelete: (id: string) => void | Promise<void>
 }) {
   const sorted = [...bookings].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
   )
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    )
+  }
 
   if (sorted.length === 0) {
     return (
@@ -482,13 +515,25 @@ function BookingsPanel({
 
 function UsersPanel({
   users,
+  loading,
+  currentUserId,
   onRole,
   onDelete,
 }: {
   users: AdminUserView[]
-  onRole: (id: string, role: UserRole) => void
-  onDelete: (id: string) => void
+  loading?: boolean
+  currentUserId?: string
+  onRole: (id: string, role: UserRole) => void | Promise<void>
+  onDelete: (id: string) => void | Promise<void>
 }) {
+  if (loading) {
+    return (
+      <div className="flex justify-center py-16">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    )
+  }
+
   return (
     <div className="overflow-hidden rounded-[24px] border border-gray-100 bg-white shadow-soft">
       <div className="overflow-x-auto">
@@ -526,7 +571,7 @@ function UsersPanel({
                   {new Date(u.createdAt).toLocaleDateString('en-IN')}
                 </td>
                 <td className="px-4 py-3">
-                  {u.email !== 'admin@junglecarz.com' && (
+                  {u.id !== currentUserId && (
                     <button
                       type="button"
                       onClick={() => onDelete(u.id)}
@@ -639,14 +684,10 @@ function CarFormModal({
             onChange={(v) => update('securityDeposit', Number(v) || 0)}
           />
           <Field label="Tag" value={form.tag ?? ''} onChange={(v) => update('tag', v)} />
-          <div className="sm:col-span-2">
-            <Field
-              label="Image URL"
-              value={form.images[0] ?? ''}
-              onChange={(v) => update('images', [v])}
-              placeholder="https://..."
-            />
-          </div>
+          <CarImageUpload
+            images={form.images}
+            onChange={(urls) => update('images', urls)}
+          />
           <div className="sm:col-span-2">
             <Field
               label="Feature chips (comma separated)"

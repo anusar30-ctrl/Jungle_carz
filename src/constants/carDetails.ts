@@ -4,15 +4,6 @@ import type { CarListing } from '../types/search'
 const img = (id: string, w = 1200) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`
 
-const XUV700_GALLERY = [
-  { url: img('photo-1549317661-bd32c8ce0db2'), label: 'Exterior' },
-  { url: img('photo-1492144534655-ae79c964c9d7'), label: 'Dashboard' },
-  { url: img('photo-1503376780353-7ebb459f45a3'), label: 'Interior' },
-  { url: img('photo-1519641471654-76ce0107a1bf'), label: 'Night View' },
-  { url: img('photo-1533473359601-0a1756b8a1b7'), label: 'Boot Space' },
-  { url: img('photo-1544636331-e26879cd4d9b'), label: 'Seats' },
-]
-
 const DEFAULT_FEATURES = [
   { id: 'auto', label: 'Automatic', icon: 'settings' },
   { id: 'diesel', label: 'Diesel', icon: 'fuel' },
@@ -131,12 +122,20 @@ function buildDetailFromCar(car: CarListing): CarDetailData {
     pricePerDay: car.pricePerDay,
     originalPrice: car.originalPrice,
     gallery:
-      car.name.includes('XUV700')
-        ? XUV700_GALLERY
-        : car.images.map((url, i) => ({
+      car.images.length > 0
+        ? car.images.map((url, i) => ({
             url,
-            label: ['Exterior', 'Interior', 'Dashboard'][i] ?? 'View',
-          })),
+            label:
+              ['Exterior', 'Interior', 'Dashboard', 'Side view', 'Rear view'][
+                i
+              ] ?? `View ${i + 1}`,
+          }))
+        : [
+            {
+              url: 'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80',
+              label: 'Exterior',
+            },
+          ],
     features: DEFAULT_FEATURES.map((f) => ({
       ...f,
       label:

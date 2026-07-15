@@ -1,12 +1,14 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import path from 'path'
 import authRoutes from './routes/auth.js'
 import carsRoutes from './routes/cars.js'
 import bookingsRoutes from './routes/bookings.js'
 import usersRoutes from './routes/users.js'
 import favoritesRoutes from './routes/favorites.js'
 import adminRoutes from './routes/admin.js'
+import uploadsRoutes from './routes/uploads.js'
 
 const app = express()
 const PORT = Number(process.env.PORT || 4000)
@@ -19,6 +21,7 @@ app.use(
   }),
 )
 app.use(express.json({ limit: '2mb' }))
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 app.get('/api/health', (_req, res) => {
   res.json({
@@ -34,6 +37,7 @@ app.use('/api/bookings', bookingsRoutes)
 app.use('/api/users', usersRoutes)
 app.use('/api/favorites', favoritesRoutes)
 app.use('/api/admin', adminRoutes)
+app.use('/api/uploads', uploadsRoutes)
 
 app.use(
   (
