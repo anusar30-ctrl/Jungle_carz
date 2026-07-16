@@ -17,21 +17,44 @@ import {
 import { Link, useNavigate } from 'react-router-dom'
 import type { CarListing, ViewMode } from '../../types/search'
 import { formatCurrency } from '../../hooks/useCarFilters'
+import type { UserCoords } from '../../hooks/useUserLocation'
 import { FavoriteButton } from '../favorites/FavoriteButton'
+import { formatDistanceKm, getDistanceKm } from '../../utils/distance'
 
 interface CarCardProps {
   car: CarListing
   view: ViewMode
   tripDays: number
   priority?: boolean
+  userCoords?: UserCoords | null
 }
 
-export function CarCard({ car, view, tripDays, priority = false }: CarCardProps) {
+export function CarCard({
+  car,
+  view,
+  tripDays,
+  priority = false,
+  userCoords,
+}: CarCardProps) {
   const navigate = useNavigate()
   const [imgIndex, setImgIndex] = useState(0)
   const totalCost = car.pricePerDay * tripDays
   const isList = view === 'list'
   const detailUrl = `/cars/${car.id}`
+
+  const distanceLabel =
+    userCoords &&
+    car.latitude != null &&
+    car.longitude != null
+      ? formatDistanceKm(
+          getDistanceKm(
+            userCoords.latitude,
+            userCoords.longitude,
+            car.latitude,
+            car.longitude
+          )
+        )
+      : null
 
   const nextImg = () =>
     setImgIndex((i) => (i + 1) % car.images.length)
@@ -154,6 +177,22 @@ export function CarCard({ car, view, tripDays, priority = false }: CarCardProps)
               <p className="mt-0.5 text-sm text-muted">
                 {car.year ?? 2022} Model
               </p>
+              {(car.locationName || distanceLabel) && (
+                <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted">
+                  {car.locationName && (
+                    <span className="inline-flex items-center gap-1">
+                      <MapPin className="h-3.5 w-3.5 text-primary" />
+                      {car.locationName}
+                      {car.locationCity ? `, ${car.locationCity}` : ''}
+                    </span>
+                  )}
+                  {distanceLabel && (
+                    <span className="rounded-lg bg-secondary/10 px-2 py-0.5 text-xs font-semibold text-secondary">
+                      {distanceLabel}
+                    </span>
+                  )}
+                </div>
+              )}
               {car.tag && (
                 <span className="mt-1 inline-block rounded-lg bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
                   {car.tag}

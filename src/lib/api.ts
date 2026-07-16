@@ -35,8 +35,26 @@ export async function api<T>(
     if (token) headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, { ...rest, headers })
-  const data = (await res.json().catch(() => ({}))) as { error?: string }
+  let res: Response
+  try {
+    res = await fetch(`${API_BASE}${path}`, { ...rest, headers })
+  } catch {
+    throw new ApiError(
+      0,
+      'Cannot reach the API. Start the backend with: cd backend && npm run dev'
+    )
+  }
+  let data: { error?: string } = {}
+  try {
+    data = (await res.json()) as { error?: string }
+  } catch {
+    if (!res.ok) {
+      throw new ApiError(
+        res.status,
+        'Cannot reach the API. Start the backend with: cd backend && npm run dev'
+      )
+    }
+  }
 
   if (!res.ok) {
     throw new ApiError(res.status, data.error || res.statusText)

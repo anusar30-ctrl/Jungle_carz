@@ -38,6 +38,11 @@ function mapCar(car: {
   bluetoothFeature: boolean
   sunroof: boolean
   popularity: number
+  locationCity: string | null
+  locationName: string | null
+  locationAddress: string | null
+  latitude: number | null
+  longitude: number | null
   createdAt: Date
 }) {
   return {
@@ -71,6 +76,11 @@ function mapCar(car: {
     bluetoothFeature: car.bluetoothFeature,
     sunroof: car.sunroof,
     popularity: car.popularity,
+    locationCity: car.locationCity ?? undefined,
+    locationName: car.locationName ?? undefined,
+    locationAddress: car.locationAddress ?? undefined,
+    latitude: car.latitude ?? undefined,
+    longitude: car.longitude ?? undefined,
     createdAt: car.createdAt.toISOString().slice(0, 10),
   }
 }
@@ -111,6 +121,11 @@ const carBodySchema = z.object({
   rating: z.number().optional(),
   reviews: z.number().optional(),
   popularity: z.number().optional(),
+  locationCity: z.string().optional(),
+  locationName: z.string().optional(),
+  locationAddress: z.string().optional(),
+  latitude: z.number().optional(),
+  longitude: z.number().optional(),
 })
 
 router.get('/', async (req, res) => {
@@ -178,6 +193,11 @@ router.post('/', requireAdmin, async (req: AuthedRequest, res) => {
       rating: data.rating ?? 4.5,
       reviews: data.reviews ?? 0,
       popularity: data.popularity ?? 70,
+      locationCity: data.locationCity,
+      locationName: data.locationName,
+      locationAddress: data.locationAddress,
+      latitude: data.latitude,
+      longitude: data.longitude,
     },
   })
 
@@ -244,6 +264,13 @@ router.put('/:id', requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
           ? { bluetoothFeature: data.bluetoothFeature }
           : {}),
         ...('sunroof' in data ? { sunroof: data.sunroof } : {}),
+        ...('locationCity' in data ? { locationCity: data.locationCity } : {}),
+        ...('locationName' in data ? { locationName: data.locationName } : {}),
+        ...('locationAddress' in data
+          ? { locationAddress: data.locationAddress }
+          : {}),
+        ...('latitude' in data ? { latitude: data.latitude } : {}),
+        ...('longitude' in data ? { longitude: data.longitude } : {}),
       },
     })
     return res.json({ car: mapCar(car) })

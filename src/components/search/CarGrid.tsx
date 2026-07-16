@@ -1,13 +1,15 @@
 import type { CarListing, ViewMode } from '../../types/search'
+import type { UserCoords } from '../../hooks/useUserLocation'
 import { CarCard } from './CarCard'
 
 interface CarGridProps {
   cars: CarListing[]
   view: ViewMode
   tripDays: number
+  userCoords?: UserCoords | null
 }
 
-export function CarGrid({ cars, view, tripDays }: CarGridProps) {
+export function CarGrid({ cars, view, tripDays, userCoords }: CarGridProps) {
   return (
     <div
       className={
@@ -23,6 +25,7 @@ export function CarGrid({ cars, view, tripDays }: CarGridProps) {
           view={view}
           tripDays={tripDays}
           priority={index < 4}
+          userCoords={userCoords}
         />
       ))}
     </div>

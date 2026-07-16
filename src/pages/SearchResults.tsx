@@ -24,6 +24,7 @@ import {
   getTripDays,
   useCarFilters,
 } from '../hooks/useCarFilters'
+import { useUserLocation } from '../hooks/useUserLocation'
 import type {
   CarListing,
   FilterState,
@@ -45,6 +46,7 @@ export function SearchResults() {
   const [mapView, setMapView] = useState(false)
   const [page, setPage] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const { coords: userCoords } = useUserLocation()
 
   const search: SearchParams = {
     pickupCity: params.get('city') || DEFAULT_SEARCH.pickupCity,
@@ -193,6 +195,7 @@ export function SearchResults() {
                   cars={paginatedCars}
                   view={view}
                   tripDays={tripDays}
+                  userCoords={userCoords}
                 />
                 <Pagination
                   currentPage={page}

@@ -10,6 +10,7 @@ import {
   Trash2,
   Users,
   X,
+  MapPin,
 } from 'lucide-react'
 import { fetchAdminStats, type AdminStats } from '../api/admin'
 import { deleteUser, fetchAllUsers, updateUserRole } from '../api/users'
@@ -31,6 +32,11 @@ import type { BookingRequest, BookingStatus } from '../types/booking'
 import type { AdminUserView, UserRole } from '../types/auth'
 import { formatCurrency } from '../hooks/useCarFilters'
 import { CarImageUpload } from '../components/admin/CarImageUpload'
+import {
+  LocationPickerModal,
+  type SelectedLocation,
+} from '../components/luxury/LocationPickerModal'
+import { LUXURY_LOCATIONS } from '../constants/luxury'
 
 type Tab = 'overview' | 'cars' | 'bookings' | 'users'
 
@@ -60,6 +66,11 @@ const emptyCarForm: CarFormInput = {
   airConditioning: true,
   bluetoothFeature: true,
   sunroof: false,
+  locationCity: '',
+  locationName: '',
+  locationAddress: '',
+  latitude: undefined,
+  longitude: undefined,
 }
 
 export function Admin() {
@@ -74,6 +85,8 @@ export function Admin() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState<CarFormInput>(emptyCarForm)
   const [carQuery, setCarQuery] = useState('')
+  const [saveError, setSaveError] = useState('')
+  const [savingCar, setSavingCar] = useState(false)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -129,11 +142,13 @@ export function Admin() {
   const openAdd = () => {
     setEditingId(null)
     setForm(emptyCarForm)
+    setSaveError('')
     setShowCarForm(true)
   }
 
   const openEdit = (car: CarListing) => {
     setEditingId(car.id)
+    setSaveError('')
     setForm({
       brand: car.brand,
       model: car.model,
@@ -164,30 +179,80 @@ export function Admin() {
       rating: car.rating,
       reviews: car.reviews,
       popularity: car.popularity,
+      locationCity: car.locationCity ?? '',
+      locationName: car.locationName ?? '',
+      locationAddress: car.locationAddress ?? '',
+      latitude: car.latitude,
+      longitude: car.longitude,
     })
     setShowCarForm(true)
   }
 
   const saveCar = async (e: React.FormEvent) => {
     e.preventDefault()
-    const filteredImages = form.images.filter(Boolean)
-    if (filteredImages.length === 0) {
-      alert('Please upload at least one car image.')
+    setSaveError('')
+
+    if (!form.brand.trim()) {
+      setSaveError('Please enter the car brand.')
       return
     }
+    if (!form.model.trim()) {
+      setSaveError('Please enter the car model.')
+      return
+    }
+
+    const filteredImages = form.images.filter(Boolean)
+    if (filteredImages.length === 0) {
+      setSaveError('Please upload at least one car image.')
+      return
+    }
+
+    if (!form.locationCity) {
+      setSaveError('Please select the city where this car is located.')
+      return
+    }
+    if (
+      !form.locationName ||
+      !form.locationAddress ||
+      form.latitude == null ||
+      form.longitude == null
+    ) {
+      setSaveError('Please pick a pickup location using the location button.')
+      return
+    }
+
+    if (!form.pricePerDay || form.pricePerDay <= 0) {
+      setSaveError('Price per day must be greater than 0.')
+      return
+    }
+    if (!form.originalPrice || form.originalPrice <= 0) {
+      setSaveError('Original price must be greater than 0.')
+      return
+    }
+
     const payload: CarFormInput = {
       ...form,
-      name: form.name || `${form.brand} ${form.model}`,
+      brand: form.brand.trim(),
+      model: form.model.trim(),
+      name: form.name.trim() || `${form.brand.trim()} ${form.model.trim()}`,
+      tag: form.tag?.trim() || undefined,
       images: filteredImages,
       featureChips: form.featureChips.filter(Boolean),
     }
+
+    setSavingCar(true)
     try {
       if (editingId) await updateCar(editingId, payload)
       else await addCar(payload)
       setShowCarForm(false)
+      setSaveError('')
       await refresh()
-    } catch {
-      // Form stays open on error
+    } catch (err) {
+      setSaveError(
+        err instanceof Error ? err.message : 'Could not save car. Try again.'
+      )
+    } finally {
+      setSavingCar(false)
     }
   }
 
@@ -315,6 +380,12 @@ export function Admin() {
                             <div>
                               <p className="font-semibold text-dark">{car.name}</p>
                               <p className="text-xs text-muted">{car.brand}</p>
+                              {car.locationName && (
+                                <p className="mt-0.5 text-xs text-muted">
+                                  {car.locationName}
+                                  {car.locationCity ? `, ${car.locationCity}` : ''}
+                                </p>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -404,8 +475,13 @@ export function Admin() {
           title={editingId ? 'Edit car' : 'Add car'}
           form={form}
           setForm={setForm}
-          onClose={() => setShowCarForm(false)}
+          onClose={() => {
+            setShowCarForm(false)
+            setSaveError('')
+          }}
           onSubmit={saveCar}
+          saveError={saveError}
+          saving={savingCar}
         />
       )}
     </div>
@@ -596,32 +672,117 @@ function CarFormModal({
   setForm,
   onClose,
   onSubmit,
+  saveError,
+  saving,
 }: {
   title: string
   form: CarFormInput
   setForm: React.Dispatch<React.SetStateAction<CarFormInput>>
   onClose: () => void
   onSubmit: (e: React.FormEvent) => void
+  saveError?: string
+  saving?: boolean
 }) {
+  const [locationModalOpen, setLocationModalOpen] = useState(false)
   const update = <K extends keyof CarFormInput>(key: K, value: CarFormInput[K]) =>
     setForm((f) => ({ ...f, [key]: value }))
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-dark/50 p-4 sm:items-center">
-      <form
-        onSubmit={onSubmit}
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white p-6 shadow-xl"
-      >
-        <div className="mb-5 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-dark">{title}</h2>
-          <button type="button" onClick={onClose} aria-label="Close">
-            <X className="h-5 w-5 text-muted" />
-          </button>
-        </div>
+  const carLocation: SelectedLocation | null =
+    form.locationName &&
+    form.locationAddress &&
+    form.latitude != null &&
+    form.longitude != null
+      ? {
+          name: form.locationName,
+          address: form.locationAddress,
+          latitude: form.latitude,
+          longitude: form.longitude,
+        }
+      : null
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Brand" value={form.brand} onChange={(v) => update('brand', v)} required />
-          <Field label="Model" value={form.model} onChange={(v) => update('model', v)} required />
+  return (
+    <>
+      <div className="fixed inset-0 z-50 flex items-end justify-center bg-dark/50 p-4 sm:items-center">
+        <form
+          onSubmit={onSubmit}
+          noValidate
+          className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-[24px] bg-white p-6 shadow-xl"
+        >
+          <div className="mb-5 flex items-center justify-between">
+            <h2 className="text-xl font-bold text-dark">{title}</h2>
+            <button type="button" onClick={onClose} aria-label="Close">
+              <X className="h-5 w-5 text-muted" />
+            </button>
+          </div>
+
+          {saveError && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+              {saveError}
+            </div>
+          )}
+
+          <div className="mb-4 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+            <p className="mb-3 text-sm font-semibold text-dark">Car Location *</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-semibold text-dark">City</span>
+                <select
+                  value={form.locationCity ?? ''}
+                  onChange={(e) => {
+                    const nextCity = e.target.value
+                    setForm((f) => ({
+                      ...f,
+                      locationCity: nextCity,
+                      locationName: '',
+                      locationAddress: '',
+                      latitude: undefined,
+                      longitude: undefined,
+                    }))
+                  }}
+                  className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-primary/40"
+                >
+                  <option value="">Select city</option>
+                  {LUXURY_LOCATIONS.map((city) => (
+                    <option key={city} value={city}>
+                      {city}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="block text-sm">
+                <span className="mb-1.5 block font-semibold text-dark">
+                  Pickup location
+                </span>
+                <button
+                  type="button"
+                  onClick={() => form.locationCity && setLocationModalOpen(true)}
+                  disabled={!form.locationCity}
+                  className="flex w-full items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5 text-left outline-none transition-colors hover:border-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <span
+                    className={
+                      carLocation ? 'truncate text-dark' : 'text-muted'
+                    }
+                  >
+                    {carLocation?.name ||
+                      (form.locationCity
+                        ? 'Select where the car is parked'
+                        : 'Select city first')}
+                  </span>
+                  <MapPin className="h-4 w-4 shrink-0 text-primary" />
+                </button>
+              </label>
+            </div>
+            {carLocation && (
+              <p className="mt-2 text-xs text-secondary">
+                Location set: {carLocation.name} — {carLocation.address}
+              </p>
+            )}
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Brand *" value={form.brand} onChange={(v) => update('brand', v)} />
+          <Field label="Model *" value={form.model} onChange={(v) => update('model', v)} />
           <Field
             label="Display name"
             value={form.name}
@@ -734,13 +895,32 @@ function CarFormModal({
           </button>
           <button
             type="submit"
-            className="flex-1 rounded-2xl bg-primary py-3 text-sm font-semibold text-white"
+            disabled={saving}
+            className="flex-1 rounded-2xl bg-primary py-3 text-sm font-semibold text-white disabled:opacity-70"
           >
-            Save car
+            {saving ? 'Saving…' : 'Save car'}
           </button>
         </div>
       </form>
-    </div>
+      </div>
+
+      <LocationPickerModal
+        open={locationModalOpen}
+        city={form.locationCity ?? ''}
+        selection={carLocation}
+        onClose={() => setLocationModalOpen(false)}
+        onContinue={(location) => {
+          setForm((f) => ({
+            ...f,
+            locationName: location.name,
+            locationAddress: location.address,
+            latitude: location.latitude,
+            longitude: location.longitude,
+          }))
+          setLocationModalOpen(false)
+        }}
+      />
+    </>
   )
 }
 

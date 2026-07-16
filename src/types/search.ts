@@ -70,6 +70,11 @@ export interface CarListing {
   sunroof: boolean
   popularity: number
   createdAt: string
+  locationCity?: string
+  locationName?: string
+  locationAddress?: string
+  latitude?: number
+  longitude?: number
 }
 
 export interface FilterState {

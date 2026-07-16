@@ -84,6 +84,11 @@ model Car {
   bluetoothFeature    Boolean     @default(true) @map("bluetooth_feature")
   sunroof             Boolean     @default(false)
   popularity          Int         @default(70)
+  locationCity        String?     @map("location_city")
+  locationName        String?     @map("location_name")
+  locationAddress     String?     @map("location_address") @db.Text
+  latitude            Float?
+  longitude           Float?
   createdAt           DateTime    @default(now()) @map("created_at")
   updatedAt           DateTime    @updatedAt @map("updated_at")
   bookings            Booking[]

@@ -7,38 +7,73 @@ import {
   SUPER_ADMIN_INITIAL,
 } from '../src/constants/superAdmin.js'
 
-const LEGACY_DUMMY_EMAILS = ['demo@junglecarz.com', 'admin@junglecarz.com']
+const LOCAL_DEV_ACCOUNTS = [
+  {
+    email: 'admin@junglecarz.com',
+    password: 'admin123',
+    fullName: 'Local Admin',
+    mobile: '9999999998',
+    role: Role.ADMIN,
+  },
+  {
+    email: 'demo@junglecarz.com',
+    password: 'demo123',
+    fullName: 'Demo User',
+    mobile: '9999999997',
+    role: Role.USER,
+  },
+] as const
+
+const DEFAULT_CAR_LOCATION = {
+  locationCity: 'Bangalore',
+  locationName: 'Koramangala',
+  locationAddress: 'Koramangala, Bengaluru, Karnataka 560034',
+  latitude: 12.9352,
+  longitude: 77.6245,
+}
+
+async function upsertUser(account: {
+  email: string
+  password: string
+  fullName: string
+  mobile: string
+  role: Role
+}) {
+  const passwordHash = await hashPassword(account.password)
+  await prisma.user.upsert({
+    where: { email: account.email },
+    create: {
+      email: account.email,
+      passwordHash,
+      fullName: account.fullName,
+      mobile: account.mobile,
+      provider: Provider.EMAIL,
+      role: account.role,
+    },
+    update: {
+      passwordHash,
+      fullName: account.fullName,
+      mobile: account.mobile,
+      role: account.role,
+    },
+  })
+}
 
 async function main() {
-  // Remove old demo accounts
-  await prisma.user.deleteMany({
-    where: { email: { in: LEGACY_DUMMY_EMAILS } },
+  await upsertUser({
+    email: SUPER_ADMIN_EMAIL,
+    password: SUPER_ADMIN_INITIAL.password,
+    fullName: SUPER_ADMIN_INITIAL.fullName,
+    mobile: SUPER_ADMIN_INITIAL.mobile,
+    role: Role.ADMIN,
   })
+  console.log('Super admin ready:')
+  console.log(`  Email:    ${SUPER_ADMIN_EMAIL}`)
+  console.log(`  Password: ${SUPER_ADMIN_INITIAL.password}`)
 
-  const existing = await prisma.user.findUnique({
-    where: { email: SUPER_ADMIN_EMAIL },
-  })
-
-  if (!existing) {
-    await prisma.user.create({
-      data: {
-        email: SUPER_ADMIN_EMAIL,
-        passwordHash: await hashPassword(SUPER_ADMIN_INITIAL.password),
-        fullName: SUPER_ADMIN_INITIAL.fullName,
-        mobile: SUPER_ADMIN_INITIAL.mobile,
-        provider: Provider.EMAIL,
-        role: Role.ADMIN,
-      },
-    })
-    console.log('Created super admin in database:')
-    console.log(`  Email:    ${SUPER_ADMIN_EMAIL}`)
-    console.log(`  Password: ${SUPER_ADMIN_INITIAL.password}`)
-  } else {
-    await prisma.user.update({
-      where: { email: SUPER_ADMIN_EMAIL },
-      data: { role: Role.ADMIN },
-    })
-    console.log(`Super admin already in database: ${SUPER_ADMIN_EMAIL}`)
+  for (const account of LOCAL_DEV_ACCOUNTS) {
+    await upsertUser(account)
+    console.log(`Local account ready: ${account.email} / ${account.password}`)
   }
 
   const carCount = await prisma.car.count()
@@ -77,6 +112,7 @@ async function main() {
           bluetoothFeature: true,
           sunroof: true,
           popularity: 98,
+          ...DEFAULT_CAR_LOCATION,
         },
         {
           brand: 'Toyota',
@@ -109,6 +145,11 @@ async function main() {
           bluetoothFeature: true,
           sunroof: false,
           popularity: 97,
+          locationCity: 'Bangalore',
+          locationName: 'Indira Nagar',
+          locationAddress: 'Indiranagar, Bengaluru, Karnataka 560038',
+          latitude: 12.9784,
+          longitude: 77.6408,
         },
         {
           brand: 'Maruti',
@@ -141,6 +182,11 @@ async function main() {
           bluetoothFeature: true,
           sunroof: false,
           popularity: 90,
+          locationCity: 'Bangalore',
+          locationName: 'BTM Layout',
+          locationAddress: 'BTM Layout, Bengaluru, Karnataka 560076',
+          latitude: 12.9166,
+          longitude: 77.6101,
         },
       ],
     })
