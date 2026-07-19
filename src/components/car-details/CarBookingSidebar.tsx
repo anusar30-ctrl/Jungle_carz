@@ -1,5 +1,3 @@
-import { useState, type MouseEvent } from 'react'
-import { motion } from 'framer-motion'
 import {
   Calendar,
   ChevronRight,
@@ -17,7 +15,7 @@ import {
   formatDisplayDate,
   formatDisplayTime,
 } from '../../hooks/useCarFilters'
-import { AuthBookNowButton } from '../auth/AuthBookNowButton'
+import { BookNowButton } from './BookNowButton'
 
 interface CarBookingSidebarProps {
   car: CarDetailData
@@ -163,7 +161,14 @@ export function CarBookingSidebar({
         </div>
       </div>
 
-      <BookNowButton href={bookingHref} />
+      <BookNowButton
+        href={bookingHref}
+        trip={trip}
+        className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-dark hover:shadow-xl"
+      >
+        Book Now
+        <ChevronRight className="h-5 w-5" />
+      </BookNowButton>
       <button
         type="button"
         className="mt-3 flex w-full items-center justify-center rounded-2xl border-2 border-primary/30 py-3.5 text-sm font-semibold text-primary transition-all hover:bg-primary/5"
@@ -221,42 +226,5 @@ function PriceRow({
         {value}
       </span>
     </div>
-  )
-}
-
-function BookNowButton({ href }: { href: string }) {
-  const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>([])
-
-  const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const id = Date.now()
-    setRipples((p) => [
-      ...p,
-      { id, x: e.clientX - rect.left, y: e.clientY - rect.top },
-    ])
-    setTimeout(() => setRipples((p) => p.filter((r) => r.id !== id)), 600)
-  }
-
-  return (
-    <AuthBookNowButton
-      href={href}
-      onRipple={handleClick}
-      className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-dark hover:shadow-xl"
-    >
-      <span className="relative z-10 flex items-center justify-center gap-2">
-        Book Now
-        <ChevronRight className="h-5 w-5" />
-      </span>
-      {ripples.map((r) => (
-        <motion.span
-          key={r.id}
-          initial={{ scale: 0, opacity: 0.4 }}
-          animate={{ scale: 4, opacity: 0 }}
-          transition={{ duration: 0.6 }}
-          className="pointer-events-none absolute h-8 w-8 rounded-full bg-white/30"
-          style={{ left: r.x - 16, top: r.y - 16 }}
-        />
-      ))}
-    </AuthBookNowButton>
   )
 }

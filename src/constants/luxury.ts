@@ -120,37 +120,53 @@ export const SUGGESTED_LOCATIONS_BY_CITY: Record<
       name: 'Majestic Bus Stand',
       address:
         'Kempe Gowda Majestic Bus Station, Tank Bund Road, Majestic, Bengaluru, Karnataka 560009',
+      latitude: 12.9781847,
+      longitude: 77.5721851,
     },
     {
       name: 'Yeshwanthpur',
       address:
         'Yeshwanthpur Industrial Suburb, Yeswanthpur, Bengaluru, Karnataka 560022',
+      latitude: 13.0176937,
+      longitude: 77.5555009,
     },
     {
       name: 'BTM Layout',
       address: 'BTM Layout, Bengaluru, Karnataka 560076',
+      latitude: 12.9140008,
+      longitude: 77.6102821,
     },
     {
       name: 'Bengaluru Palace',
       address:
         'Bengaluru Palace, Palace Cross Road, Vasanth Nagar, Bengaluru, Karnataka 560052',
+      latitude: 12.9989,
+      longitude: 77.5811516,
     },
     {
       name: 'Indira Nagar',
       address: 'Indiranagar, Bengaluru, Karnataka 560038',
+      latitude: 12.9732913,
+      longitude: 77.6404672,
     },
     {
       name: 'Bellandur',
       address: 'Bellandur, Bengaluru, Karnataka 560103',
+      latitude: 12.9320495,
+      longitude: 77.6842915,
     },
     {
       name: 'Kempegowda International Airport',
       address:
         'Kempegowda International Airport, Devanahalli, Bengaluru, Karnataka 560300',
+      latitude: 13.1976048,
+      longitude: 77.7074856,
     },
     {
       name: 'Koramangala',
       address: 'Koramangala, Bengaluru, Karnataka 560034',
+      latitude: 12.9357366,
+      longitude: 77.624081,
     },
   ],
   Mumbai: [

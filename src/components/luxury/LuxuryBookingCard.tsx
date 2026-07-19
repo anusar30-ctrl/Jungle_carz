@@ -17,11 +17,15 @@ import {
 import type { LuxuryBookingMode } from '../../constants/luxury'
 import { LUXURY_LOCATIONS, VEHICLE_TYPES } from '../../constants/luxury'
 import {
+  addHoursToDatetimeLocal,
+  getTripDurationHours,
   minDropDatetime,
+  MIN_SELF_DRIVE_HOURS,
   splitDatetimeLocal,
   toDatetimeLocal,
 } from '../../utils/datetime'
 import { LuxuryRentalTabs } from './LuxuryRentalTabs'
+import { MinTripDurationModal } from './MinTripDurationModal'
 import {
   LocationPickerModal,
   type SelectedLocation,
@@ -51,12 +55,31 @@ export function LuxuryBookingCard() {
   const [vehicleType, setVehicleType] = useState('')
   const [promo, setPromo] = useState('')
   const [loading, setLoading] = useState(false)
+  const [durationModalOpen, setDurationModalOpen] = useState(false)
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>(
     []
   )
 
   const todayMin = `${today}T00:00`
   const isSelfDrive = bookingMode === 'self-drive'
+  const tripEndMin = isSelfDrive
+    ? addHoursToDatetimeLocal(tripStart, MIN_SELF_DRIVE_HOURS) ||
+      minDropDatetime(tripStart) ||
+      todayMin
+    : minDropDatetime(tripStart) || todayMin
+
+  const showMinDurationModal = () => setDurationModalOpen(true)
+
+  const isSelfDriveDurationTooShort = () =>
+    isSelfDrive && getTripDurationHours(tripStart, tripEnd) < MIN_SELF_DRIVE_HOURS
+
+  const handleModeChange = (mode: LuxuryBookingMode) => {
+    setBookingMode(mode)
+    if (mode === 'self-drive') {
+      const minEnd = addHoursToDatetimeLocal(tripStart, MIN_SELF_DRIVE_HOURS)
+      if (minEnd && tripEnd < minEnd) setTripEnd(minEnd)
+    }
+  }
 
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
@@ -66,6 +89,11 @@ export function LuxuryBookingCard() {
   const handleSearch = (e: FormEvent) => {
     e.preventDefault()
     if (!location) return
+
+    if (isSelfDriveDurationTooShort()) {
+      showMinDurationModal()
+      return
+    }
 
     setLoading(true)
 
@@ -91,6 +119,8 @@ export function LuxuryBookingCard() {
         if (vehicleType) params.set('vehicleType', vehicleType.toLowerCase())
       }
       if (promo) params.set('promo', promo)
+      params.set('lat', String(location.latitude))
+      params.set('lng', String(location.longitude))
 
       navigate(`/search?${params.toString()}`)
     }, 900)
@@ -126,7 +156,7 @@ export function LuxuryBookingCard() {
             </p>
 
             <div className="mt-5">
-              <LuxuryRentalTabs value={bookingMode} onChange={setBookingMode} />
+              <LuxuryRentalTabs value={bookingMode} onChange={handleModeChange} />
             </div>
 
             <form onSubmit={handleSearch} className="mt-5 space-y-3">
@@ -187,7 +217,10 @@ export function LuxuryBookingCard() {
                   onChange={(e) => {
                     const value = e.target.value
                     setTripStart(value)
-                    if (tripEnd < value) setTripEnd(value)
+                    const nextEndMin = isSelfDrive
+                      ? addHoursToDatetimeLocal(value, MIN_SELF_DRIVE_HOURS)
+                      : value
+                    if (tripEnd < nextEndMin) setTripEnd(nextEndMin)
                   }}
                   required
                   className="luxury-input w-full [color-scheme:dark]"
@@ -199,8 +232,18 @@ export function LuxuryBookingCard() {
                 <input
                   type="datetime-local"
                   value={tripEnd}
-                  min={minDropDatetime(tripStart) || todayMin}
-                  onChange={(e) => setTripEnd(e.target.value)}
+                  min={tripEndMin}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setTripEnd(value)
+                    if (
+                      isSelfDrive &&
+                      getTripDurationHours(tripStart, value) > 0 &&
+                      getTripDurationHours(tripStart, value) < MIN_SELF_DRIVE_HOURS
+                    ) {
+                      showMinDurationModal()
+                    }
+                  }}
                   required
                   className="luxury-input w-full [color-scheme:dark]"
                   aria-label="Trip end date and time"
@@ -286,6 +329,11 @@ export function LuxuryBookingCard() {
           setLocation(next)
           setLocationModalOpen(false)
         }}
+      />
+
+      <MinTripDurationModal
+        open={durationModalOpen}
+        onClose={() => setDurationModalOpen(false)}
       />
     </>
   )

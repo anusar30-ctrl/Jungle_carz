@@ -4,7 +4,7 @@ import { ChevronUp } from 'lucide-react'
 import type { CarDetailData, PriceBreakdown, TripInfo } from '../../types/carDetails'
 import { formatCurrency } from '../../hooks/useCarFilters'
 import { CarBookingSidebar } from './CarBookingSidebar'
-import { AuthBookNowButton } from '../auth/AuthBookNowButton'
+import { BookNowButton } from './BookNowButton'
 
 interface MobileBookingSheetProps {
   car: CarDetailData
@@ -31,12 +31,13 @@ export function MobileBookingSheet({
             </p>
             <p className="text-xs text-muted">Total for {trip.days} days</p>
           </div>
-          <AuthBookNowButton
+          <BookNowButton
             href={bookingHref}
+            trip={trip}
             className="flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-primary px-6 py-3.5 text-center text-sm font-semibold text-white shadow-md shadow-primary/25"
           >
             Book Now
-          </AuthBookNowButton>
+          </BookNowButton>
         </div>
       </div>
 

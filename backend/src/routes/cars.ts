@@ -1,5 +1,5 @@
 import { Router, type Request } from 'express'
-import { CarCategory, Prisma } from '@prisma/client'
+import { CarCategory, Prisma, type Car } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
@@ -7,44 +7,7 @@ import type { IdParams } from '../types/express.js'
 
 const router = Router()
 
-function mapCar(car: {
-  id: string
-  brand: string
-  model: string
-  name: string
-  vehicleType: string
-  category: CarCategory
-  year: number
-  transmission: string
-  fuel: string
-  seats: number
-  mileage: string
-  rating: number
-  reviews: number
-  pricePerDay: number
-  originalPrice: number
-  securityDeposit: number
-  images: Prisma.JsonValue
-  featureChips: Prisma.JsonValue
-  amenities: Prisma.JsonValue
-  badges: Prisma.JsonValue
-  discountPercent: number | null
-  tag: string | null
-  cancellationPolicy: string
-  unlimitedKm: boolean
-  instantBooking: boolean
-  freeCancellation: boolean
-  airConditioning: boolean
-  bluetoothFeature: boolean
-  sunroof: boolean
-  popularity: number
-  locationCity: string | null
-  locationName: string | null
-  locationAddress: string | null
-  latitude: number | null
-  longitude: number | null
-  createdAt: Date
-}) {
+function mapCar(car: Car) {
   return {
     id: car.id,
     brand: car.brand,

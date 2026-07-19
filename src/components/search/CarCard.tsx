@@ -13,6 +13,7 @@ import {
   Snowflake,
   Star,
   Users,
+  Crosshair,
 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import type { CarListing, ViewMode } from '../../types/search'
@@ -187,8 +188,9 @@ export function CarCard({
                     </span>
                   )}
                   {distanceLabel && (
-                    <span className="rounded-lg bg-secondary/10 px-2 py-0.5 text-xs font-semibold text-secondary">
-                      {distanceLabel}
+                    <span className="inline-flex items-center gap-1 rounded-lg bg-secondary/10 px-2 py-0.5 text-xs font-semibold text-secondary">
+                      <Crosshair className="h-3 w-3" />
+                      {distanceLabel} from you
                     </span>
                   )}
                 </div>

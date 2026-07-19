@@ -132,11 +132,18 @@ export async function detectLiveLocation(): Promise<LiveLocationResult> {
   }
 }
 
-export async function geocodeAddress(
-  address: string,
-  city?: string
+function cityInAddress(address: string, city: string): boolean {
+  const normalized = address.toLowerCase()
+  const cityLower = city.toLowerCase()
+  if (normalized.includes(cityLower)) return true
+  if (cityLower === 'bangalore' && normalized.includes('bengaluru')) return true
+  if (cityLower === 'delhi' && normalized.includes('new delhi')) return true
+  return false
+}
+
+async function searchNominatim(
+  query: string
 ): Promise<{ latitude: number; longitude: number } | null> {
-  const query = city ? `${address}, ${city}, India` : address
   try {
     const res = await fetch(
       `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`,
@@ -153,4 +160,35 @@ export async function geocodeAddress(
   } catch {
     return null
   }
+}
+
+export async function geocodeAddress(
+  address: string,
+  city?: string,
+  hint?: string
+): Promise<{ latitude: number; longitude: number } | null> {
+  const trimmed = address.trim()
+  if (!trimmed) return null
+
+  const queries: string[] = []
+  if (city && !cityInAddress(trimmed, city)) {
+    queries.push(`${trimmed}, ${city}, India`)
+  } else {
+    queries.push(`${trimmed}, India`)
+  }
+  if (hint && city) queries.push(`${hint}, ${city}, India`)
+  const firstPart = trimmed.split(',')[0]?.trim()
+  if (firstPart && firstPart !== trimmed && city) {
+    queries.push(`${firstPart}, ${city}, India`)
+  }
+
+  const seen = new Set<string>()
+  for (const query of queries) {
+    if (seen.has(query)) continue
+    seen.add(query)
+    const hit = await searchNominatim(query)
+    if (hit) return hit
+  }
+
+  return null
 }

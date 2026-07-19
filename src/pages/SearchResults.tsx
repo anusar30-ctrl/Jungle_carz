@@ -18,13 +18,14 @@ import { Pagination } from '../components/search/Pagination'
 import { OfferBanner } from '../components/search/OfferBanner'
 import { BottomCTA, MapViewPlaceholder } from '../components/search/BottomCTA'
 import { fetchAllCars } from '../utils/carsStorage'
+import { geocodeAddress } from '../utils/geolocation'
 import { DEFAULT_FILTERS, DEFAULT_SEARCH } from '../constants/filters'
 import {
   filterAndSortCars,
   getTripDays,
   useCarFilters,
 } from '../hooks/useCarFilters'
-import { useUserLocation } from '../hooks/useUserLocation'
+import { useUserLocation, parseUserCoordsFromParams } from '../hooks/useUserLocation'
 import type {
   CarListing,
   FilterState,
@@ -46,7 +47,20 @@ export function SearchResults() {
   const [mapView, setMapView] = useState(false)
   const [page, setPage] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
-  const { coords: userCoords } = useUserLocation()
+  const [searchCoords, setSearchCoords] = useState<{
+    latitude: number
+    longitude: number
+  } | null>(null)
+  const { coords: gpsCoords, denied, loading: locationLoading, refresh } =
+    useUserLocation()
+
+  const userCoords = useMemo(
+    () =>
+      parseUserCoordsFromParams(params.get('lat'), params.get('lng')) ??
+      gpsCoords ??
+      searchCoords,
+    [params, gpsCoords, searchCoords],
+  )
 
   const search: SearchParams = {
     pickupCity: params.get('city') || DEFAULT_SEARCH.pickupCity,
@@ -99,6 +113,28 @@ export function SearchResults() {
   useEffect(() => {
     setPage(1)
   }, [filters, sort])
+
+  useEffect(() => {
+    if (
+      parseUserCoordsFromParams(params.get('lat'), params.get('lng')) ||
+      gpsCoords
+    ) {
+      return
+    }
+
+    const locationAddress = params.get('location')
+    const city = params.get('city')
+    if (!locationAddress) return
+
+    let cancelled = false
+    geocodeAddress(locationAddress, city ?? undefined).then((hit) => {
+      if (!cancelled && hit) setSearchCoords(hit)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [params, gpsCoords])
 
   const handleReset = useCallback(() => {
     setFilters(DEFAULT_FILTERS)
@@ -160,6 +196,17 @@ export function SearchResults() {
                     ? 'Tourism Cars Available'
                     : 'Cars Available'}
                 </p>
+                {!userCoords && !locationLoading && (
+                  <button
+                    type="button"
+                    onClick={refresh}
+                    className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 transition-colors hover:bg-amber-100"
+                  >
+                    {denied
+                      ? 'Enable location to see distance from you'
+                      : 'Use my location for distance'}
+                  </button>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3">

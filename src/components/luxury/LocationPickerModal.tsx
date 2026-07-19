@@ -108,7 +108,7 @@ export function LocationPickerModal({
     let longitude = draftCoords?.longitude
 
     if (latitude == null || longitude == null) {
-      const geocoded = await geocodeAddress(trimmed, city)
+      const geocoded = await geocodeAddress(trimmed, city, matched?.name)
       if (!geocoded) {
         setError('Could not find coordinates for this address.')
         setResolving(false)
