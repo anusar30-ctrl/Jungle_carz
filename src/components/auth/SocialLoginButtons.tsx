@@ -6,7 +6,8 @@ import { FcGoogle } from 'react-icons/fc'
 import type { AuthProvider } from '../../types/auth'
 import { useAuth } from '../../context/AuthContext'
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
+const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim() ?? ''
+const isGoogleSignInConfigured = googleClientId.length > 0
 
 interface SocialLoginButtonsProps {
   onError?: (message: string) => void
@@ -36,7 +37,12 @@ export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsPro
   }
 
   const handleGoogleClick = () => {
-    if (!GOOGLE_CLIENT_ID) {
+    if (!isGoogleSignInConfigured) {
+      if (import.meta.env.DEV) {
+        console.error(
+          '[Jungle Carz] VITE_GOOGLE_CLIENT_ID is not set. Add it to your root .env file (see .env.example).',
+        )
+      }
       onError?.(
         'Google sign-in is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file.',
       )
@@ -51,17 +57,19 @@ export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsPro
 
   return (
     <div className="space-y-3">
-      <div ref={googleButtonRef} className="sr-only" aria-hidden="true">
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => onError?.('Google sign-in was cancelled or failed.')}
-          useOneTap={false}
-          type="standard"
-          theme="outline"
-          size="large"
-          text="continue_with"
-        />
-      </div>
+      {isGoogleSignInConfigured && (
+        <div ref={googleButtonRef} className="sr-only" aria-hidden="true">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => onError?.('Google sign-in was cancelled or failed.')}
+            useOneTap={false}
+            type="standard"
+            theme="outline"
+            size="large"
+            text="continue_with"
+          />
+        </div>
+      )}
 
       <SocialButton
         label="Continue with Google"
