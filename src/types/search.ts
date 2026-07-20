@@ -50,6 +50,8 @@ export interface CarListing {
   reviews: number
   pricePerDay: number
   originalPrice: number
+  pricePerKm?: number
+  excessKmRate?: number
   securityDeposit: number
   images: string[]
   featureChips: string[]

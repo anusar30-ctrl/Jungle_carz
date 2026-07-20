@@ -53,6 +53,8 @@ const emptyCarForm: CarFormInput = {
   mileage: '15 km/l',
   pricePerDay: 2500,
   originalPrice: 3000,
+  pricePerKm: 52,
+  excessKmRate: 7,
   securityDeposit: 5000,
   images: [],
   featureChips: ['FastTag Included', 'ABS', 'Airbags'],
@@ -162,6 +164,8 @@ export function Admin() {
       mileage: car.mileage,
       pricePerDay: car.pricePerDay,
       originalPrice: car.originalPrice,
+      pricePerKm: car.pricePerKm,
+      excessKmRate: car.excessKmRate,
       securityDeposit: car.securityDeposit,
       images: car.images,
       featureChips: car.featureChips,
@@ -837,6 +841,18 @@ function CarFormModal({
             type="number"
             value={String(form.originalPrice)}
             onChange={(v) => update('originalPrice', Number(v) || 0)}
+          />
+          <Field
+            label="Price / km"
+            type="number"
+            value={String(form.pricePerKm ?? '')}
+            onChange={(v) => update('pricePerKm', Number(v) || undefined)}
+          />
+          <Field
+            label="Excess km rate"
+            type="number"
+            value={String(form.excessKmRate ?? 7)}
+            onChange={(v) => update('excessKmRate', Number(v) || 7)}
           />
           <Field
             label="Security deposit"

@@ -24,6 +24,8 @@ function mapCar(car: Car) {
     reviews: car.reviews,
     pricePerDay: car.pricePerDay,
     originalPrice: car.originalPrice,
+    pricePerKm: car.pricePerKm ?? undefined,
+    excessKmRate: car.excessKmRate,
     securityDeposit: car.securityDeposit,
     images: car.images as string[],
     featureChips: car.featureChips as string[],
@@ -61,6 +63,8 @@ const carBodySchema = z.object({
   mileage: z.string().min(1),
   pricePerDay: z.number().int().positive(),
   originalPrice: z.number().int().positive(),
+  pricePerKm: z.number().int().positive().optional(),
+  excessKmRate: z.number().int().positive().optional(),
   securityDeposit: z.number().int().nonnegative(),
   images: z.array(z.string()).default([]),
   featureChips: z.array(z.string()).default([]),
@@ -134,6 +138,8 @@ router.post('/', requireAdmin, async (req: AuthedRequest, res) => {
       mileage: data.mileage,
       pricePerDay: data.pricePerDay,
       originalPrice: data.originalPrice,
+      pricePerKm: data.pricePerKm,
+      excessKmRate: data.excessKmRate ?? 7,
       securityDeposit: data.securityDeposit,
       images:
         data.images.length > 0
@@ -199,6 +205,8 @@ router.put('/:id', requireAdmin, async (req: AuthedRequest<IdParams>, res) => {
         ...('mileage' in data ? { mileage: data.mileage } : {}),
         ...('pricePerDay' in data ? { pricePerDay: data.pricePerDay } : {}),
         ...('originalPrice' in data ? { originalPrice: data.originalPrice } : {}),
+        ...('pricePerKm' in data ? { pricePerKm: data.pricePerKm } : {}),
+        ...('excessKmRate' in data ? { excessKmRate: data.excessKmRate } : {}),
         ...('securityDeposit' in data
           ? { securityDeposit: data.securityDeposit }
           : {}),

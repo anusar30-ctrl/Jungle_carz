@@ -69,6 +69,8 @@ model Car {
   reviews             Int         @default(0)
   pricePerDay         Int         @map("price_per_day")
   originalPrice       Int         @map("original_price")
+  pricePerKm          Int?        @map("price_per_km")
+  excessKmRate        Int         @default(7) @map("excess_km_rate")
   securityDeposit     Int         @map("security_deposit")
   images              Json
   featureChips        Json        @map("feature_chips")
@@ -111,11 +113,18 @@ model Booking {
   dropDate     String        @map("drop_date")
   pickupTime   String        @map("pickup_time")
   dropTime     String        @map("drop_time")
-  days         Int
-  pricePerDay  Int           @map("price_per_day")
-  basePrice    Int           @map("base_price")
-  gst          Int
-  total        Int
+  days              Int
+  pricePerDay       Int           @map("price_per_day")
+  pricePerKm        Int           @default(0) @map("price_per_km")
+  includedKm        Int           @default(0) @map("included_km")
+  kmPackage         String        @default("limited") @map("km_package")
+  locationCharge    Int           @default(0) @map("location_charge")
+  travelConfidence  Int           @default(0) @map("travel_confidence")
+  dropLocationMode  String        @default("same") @map("drop_location_mode")
+  dropLocationAddress String?     @map("drop_location_address") @db.Text
+  basePrice         Int           @map("base_price")
+  gst               Int
+  total             Int
   customerName String        @map("customer_name")
   customerEmail String       @map("customer_email")
   customerMobile String      @map("customer_mobile")

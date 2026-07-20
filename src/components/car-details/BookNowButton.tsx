@@ -3,11 +3,17 @@ import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import type { TripInfo } from '../../types/carDetails'
 import { useRequireAuth } from '../../hooks/useRequireAuth'
-import { DropLocationPolicyModal } from './DropLocationPolicyModal'
+import {
+  DropLocationPolicyModal,
+  type DropLocationSelection,
+} from './DropLocationPolicyModal'
 
 type BookNowButtonProps = {
   href: string
   trip: TripInfo
+  city: string
+  pickupLocationLabel?: string
+  pickupCoords?: { latitude: number; longitude: number } | null
   className: string
   children: ReactNode
 }
@@ -15,12 +21,15 @@ type BookNowButtonProps = {
 export function BookNowButton({
   href,
   trip,
+  city,
+  pickupLocationLabel,
+  pickupCoords,
   className,
   children,
 }: BookNowButtonProps) {
   const [modalOpen, setModalOpen] = useState(false)
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>(
-    []
+    [],
   )
   const { requireAuth } = useRequireAuth()
   const navigate = useNavigate()
@@ -36,10 +45,29 @@ export function BookNowButton({
     setModalOpen(true)
   }
 
-  const handleContinue = () => {
+  const buildBookingUrl = (selection: DropLocationSelection) => {
+    const url = new URL(href, window.location.origin)
+    url.searchParams.set('dropMode', selection.mode)
+
+    if (selection.mode === 'different' && selection.dropLocation) {
+      url.searchParams.set('dropCity', selection.dropLocation.name)
+      url.searchParams.set('dropLocation', selection.dropLocation.address)
+      url.searchParams.set('dropLat', String(selection.dropLocation.latitude))
+      url.searchParams.set('dropLng', String(selection.dropLocation.longitude))
+    } else {
+      url.searchParams.delete('dropLocation')
+      url.searchParams.delete('dropLat')
+      url.searchParams.delete('dropLng')
+    }
+
+    return `${url.pathname}${url.search}`
+  }
+
+  const handleContinue = (selection: DropLocationSelection) => {
     setModalOpen(false)
-    if (requireAuth(href)) {
-      navigate(href)
+    const target = buildBookingUrl(selection)
+    if (requireAuth(target)) {
+      navigate(target)
     }
   }
 
@@ -64,6 +92,9 @@ export function BookNowButton({
       <DropLocationPolicyModal
         open={modalOpen}
         trip={trip}
+        city={city}
+        pickupLocationLabel={pickupLocationLabel}
+        pickupCoords={pickupCoords}
         onClose={() => setModalOpen(false)}
         onContinue={handleContinue}
       />

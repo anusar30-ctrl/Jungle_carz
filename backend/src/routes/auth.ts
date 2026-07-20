@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { Provider, Role } from '@prisma/client'
 import { prisma } from '../lib/prisma.js'
 import { hashPassword, signToken, verifyPassword } from '../lib/auth.js'
+import { verifyGoogleIdToken } from '../lib/googleAuth.js'
 import { requireAuth, type AuthedRequest } from '../middleware/auth.js'
 
 const router = Router()
@@ -39,6 +40,10 @@ const registerSchema = z.object({
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+})
+
+const googleSchema = z.object({
+  idToken: z.string().min(1),
 })
 
 router.post('/register', async (req, res) => {
@@ -99,6 +104,53 @@ router.post('/login', async (req, res) => {
   })
 
   return res.json({ token, user: publicUser(user) })
+})
+
+router.post('/google', async (req, res) => {
+  if (!process.env.GOOGLE_CLIENT_ID) {
+    return res.status(503).json({ error: 'Google sign-in is not configured on the server' })
+  }
+
+  const parsed = googleSchema.safeParse(req.body)
+  if (!parsed.success) {
+    return res.status(400).json({ error: 'Invalid Google sign-in request' })
+  }
+
+  try {
+    const profile = await verifyGoogleIdToken(parsed.data.idToken)
+    const existing = await prisma.user.findUnique({ where: { email: profile.email } })
+
+    const user = existing
+      ? await prisma.user.update({
+          where: { id: existing.id },
+          data: {
+            ...(profile.avatar && !existing.avatar ? { avatar: profile.avatar } : {}),
+            ...(existing.fullName.trim().length === 0
+              ? { fullName: profile.fullName }
+              : {}),
+          },
+        })
+      : await prisma.user.create({
+          data: {
+            email: profile.email,
+            fullName: profile.fullName,
+            mobile: '',
+            provider: Provider.GOOGLE,
+            role: Role.USER,
+            avatar: profile.avatar,
+          },
+        })
+
+    const token = signToken({
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+    })
+
+    return res.json({ token, user: publicUser(user) })
+  } catch {
+    return res.status(401).json({ error: 'Google sign-in failed. Please try again.' })
+  }
 })
 
 router.get('/me', requireAuth, async (req: AuthedRequest, res) => {

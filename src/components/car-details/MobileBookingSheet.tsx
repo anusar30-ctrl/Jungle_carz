@@ -11,6 +11,8 @@ interface MobileBookingSheetProps {
   trip: TripInfo
   pricing: PriceBreakdown
   bookingHref: string
+  pickupLocationLabel?: string
+  pickupCoords?: { latitude: number; longitude: number } | null
 }
 
 export function MobileBookingSheet({
@@ -18,6 +20,8 @@ export function MobileBookingSheet({
   trip,
   pricing,
   bookingHref,
+  pickupLocationLabel,
+  pickupCoords,
 }: MobileBookingSheetProps) {
   const [open, setOpen] = useState(false)
 
@@ -29,11 +33,16 @@ export function MobileBookingSheet({
             <p className="text-lg font-bold text-primary">
               {formatCurrency(pricing.total)}
             </p>
-            <p className="text-xs text-muted">Total for {trip.days} days</p>
+            <p className="text-xs text-muted">
+              {pricing.includedKm} km included • {formatCurrency(pricing.pricePerKm)}/km
+            </p>
           </div>
           <BookNowButton
             href={bookingHref}
             trip={trip}
+            city={trip.pickupCity}
+            pickupLocationLabel={pickupLocationLabel}
+            pickupCoords={pickupCoords}
             className="flex min-h-[48px] flex-1 items-center justify-center rounded-2xl bg-primary px-6 py-3.5 text-center text-sm font-semibold text-white shadow-md shadow-primary/25"
           >
             Book Now
@@ -75,6 +84,8 @@ export function MobileBookingSheet({
                   trip={trip}
                   pricing={pricing}
                   bookingHref={bookingHref}
+                  pickupLocationLabel={pickupLocationLabel}
+                  pickupCoords={pickupCoords}
                   compact
                 />
               </div>

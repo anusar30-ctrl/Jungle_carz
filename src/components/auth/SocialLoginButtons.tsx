@@ -1,35 +1,72 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
+import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { FcGoogle } from 'react-icons/fc'
 import type { AuthProvider } from '../../types/auth'
 import { useAuth } from '../../context/AuthContext'
 
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID ?? ''
+
 interface SocialLoginButtonsProps {
   onError?: (message: string) => void
+  onSuccess?: () => void
 }
 
-export function SocialLoginButtons({ onError }: SocialLoginButtonsProps) {
+export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsProps) {
   const { loginWithSocial } = useAuth()
   const [loading, setLoading] = useState<AuthProvider | null>(null)
+  const googleButtonRef = useRef<HTMLDivElement>(null)
 
-  const handleSocial = async (provider: AuthProvider) => {
-    setLoading(provider)
+  const handleGoogleSuccess = async (response: CredentialResponse) => {
+    if (!response.credential) {
+      onError?.('Google sign-in failed. Please try again.')
+      return
+    }
+
+    setLoading('google')
     try {
-      await loginWithSocial(provider)
-    } catch {
-      onError?.(`Could not sign in with ${provider}. Please try again.`)
+      await loginWithSocial('google', response.credential)
+      onSuccess?.()
+    } catch (err) {
+      onError?.(err instanceof Error ? err.message : 'Could not sign in with Google.')
     } finally {
       setLoading(null)
     }
   }
 
+  const handleGoogleClick = () => {
+    if (!GOOGLE_CLIENT_ID) {
+      onError?.(
+        'Google sign-in is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file.',
+      )
+      return
+    }
+
+    const googleBtn = googleButtonRef.current?.querySelector(
+      'div[role="button"]',
+    ) as HTMLElement | null
+    googleBtn?.click()
+  }
+
   return (
     <div className="space-y-3">
+      <div ref={googleButtonRef} className="sr-only" aria-hidden="true">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => onError?.('Google sign-in was cancelled or failed.')}
+          useOneTap={false}
+          type="standard"
+          theme="outline"
+          size="large"
+          text="continue_with"
+        />
+      </div>
+
       <SocialButton
         label="Continue with Google"
         icon={<FcGoogle className="h-5 w-5" />}
-        onClick={() => handleSocial('google')}
+        onClick={handleGoogleClick}
         loading={loading === 'google'}
         disabled={!!loading}
       />

@@ -34,6 +34,15 @@ export interface CreateBookingInput {
   pickupTime: string
   dropTime: string
   days: number
+  kmPackage?: 'limited' | 'unlimited'
+  dropLocationMode?: 'same' | 'different'
+  dropLocationAddress?: string
+  dropLatitude?: number
+  dropLongitude?: number
+  pickupLatitude?: number
+  pickupLongitude?: number
+  travelConfidence?: boolean
+  depositPayNow?: boolean
   customer: CustomerDetails
 }
 

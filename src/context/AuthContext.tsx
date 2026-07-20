@@ -17,6 +17,7 @@ import type {
 import {
   fetchCurrentUser,
   loginUser,
+  loginWithGoogle,
   logoutUser,
   registerUser,
   updateUserProfile,
@@ -29,7 +30,7 @@ interface AuthContextValue {
   isAdmin: boolean
   login: (credentials: LoginCredentials) => Promise<void>
   register: (data: RegisterData) => Promise<void>
-  loginWithSocial: (provider: AuthProvider) => Promise<void>
+  loginWithSocial: (provider: AuthProvider, idToken?: string) => Promise<void>
   logout: () => void
   updateProfile: (data: ProfileUpdate) => Promise<void>
 }
@@ -56,11 +57,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(registered)
   }, [])
 
-  const loginWithSocial = useCallback(async (_provider: AuthProvider) => {
-    throw new Error(
-      'Social sign-in is not available yet. Please use email and password.',
-    )
-  }, [])
+  const loginWithSocial = useCallback(
+    async (provider: AuthProvider, idToken?: string) => {
+      if (provider !== 'google') {
+        throw new Error(`${provider} sign-in is not available yet.`)
+      }
+      if (!idToken) {
+        throw new Error('Google sign-in was cancelled or failed.')
+      }
+      const loggedIn = await loginWithGoogle(idToken)
+      setUser(loggedIn)
+    },
+    [],
+  )
 
   const logout = useCallback(() => {
     logoutUser()

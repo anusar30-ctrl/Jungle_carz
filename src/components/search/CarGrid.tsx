@@ -1,30 +1,37 @@
-import type { CarListing, ViewMode } from '../../types/search'
+import type { CarListing } from '../../types/search'
 import type { UserCoords } from '../../hooks/useUserLocation'
 import { CarCard } from './CarCard'
 
 interface CarGridProps {
   cars: CarListing[]
-  view: ViewMode
   tripDays: number
+  searchQuery?: string
+  tripTimes?: {
+    pickupDate: string
+    dropDate: string
+    pickupTime: string
+    dropTime: string
+  }
   userCoords?: UserCoords | null
 }
 
-export function CarGrid({ cars, view, tripDays, userCoords }: CarGridProps) {
+export function CarGrid({
+  cars,
+  tripDays,
+  searchQuery,
+  tripTimes,
+  userCoords,
+}: CarGridProps) {
   return (
-    <div
-      className={
-        view === 'grid'
-          ? 'grid gap-5 sm:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3'
-          : 'flex flex-col gap-5'
-      }
-    >
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5 xl:grid-cols-3">
       {cars.map((car, index) => (
         <CarCard
           key={car.id}
           car={car}
-          view={view}
           tripDays={tripDays}
-          priority={index < 4}
+          searchQuery={searchQuery}
+          tripTimes={tripTimes}
+          priority={index < 6}
           userCoords={userCoords}
         />
       ))}

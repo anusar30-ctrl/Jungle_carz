@@ -41,3 +41,64 @@ export function addHoursToDatetimeLocal(value: string, hours: number): string {
 }
 
 export const MIN_SELF_DRIVE_HOURS = 6
+
+const MONTHS_SHORT = [
+  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+]
+
+/** Format for trip picker header, e.g. "21 Jul'26, 8 AM" */
+export function formatTripPickerLabel(datetimeLocal: string): string {
+  if (!datetimeLocal) return ''
+  const d = new Date(datetimeLocal)
+  if (Number.isNaN(d.getTime())) return ''
+  const day = d.getDate()
+  const mon = MONTHS_SHORT[d.getMonth()]
+  const yr = String(d.getFullYear()).slice(-2)
+  let h = d.getHours()
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12 || 12
+  const mins = d.getMinutes()
+  if (mins === 0) return `${day} ${mon}'${yr}, ${h} ${ampm}`
+  return `${day} ${mon}'${yr}, ${h}:${String(mins).padStart(2, '0')} ${ampm}`
+}
+
+export function formatTripRangeLabel(start: string, end: string): string {
+  return `${formatTripPickerLabel(start)} - ${formatTripPickerLabel(end)}`
+}
+
+export function dateYmd(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+}
+
+export function todayYmd(): string {
+  return dateYmd(new Date())
+}
+
+/** Minutes from midnight, snapped to 30-min slots (0–1410). */
+export function minutesFromDatetimeLocal(value: string): number {
+  const { time } = splitDatetimeLocal(value)
+  const [h = '10', m = '0'] = time.split(':')
+  const total = Number(h) * 60 + Number(m)
+  return Math.round(total / 30) * 30
+}
+
+export function datetimeFromParts(date: string, minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${date}T${pad(h)}:${pad(m)}`
+}
+
+export function formatMinutesLabel(minutes: number): string {
+  const h24 = Math.floor(minutes / 60) % 24
+  const m = minutes % 60
+  const ampm = h24 >= 12 ? 'PM' : 'AM'
+  const h12 = h24 % 12 || 12
+  return `${String(h12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${ampm}`
+}
+
+export function monthLabel(year: number, month: number): string {
+  return `${MONTHS_SHORT[month]} '${String(year).slice(-2)}`
+}

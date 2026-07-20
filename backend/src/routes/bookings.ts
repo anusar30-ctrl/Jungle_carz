@@ -2,6 +2,7 @@ import { Router, type Request } from 'express'
 import { BookingStatus, RentalType } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
+import { calcBookingTotal } from '../lib/pricing.js'
 import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
 import type { IdParams } from '../types/express.js'
 
@@ -23,6 +24,13 @@ function mapBooking(b: {
   dropTime: string
   days: number
   pricePerDay: number
+  pricePerKm: number
+  includedKm: number
+  kmPackage: string
+  locationCharge: number
+  travelConfidence: number
+  dropLocationMode: string
+  dropLocationAddress: string | null
   basePrice: number
   gst: number
   total: number
@@ -48,6 +56,13 @@ function mapBooking(b: {
     dropTime: b.dropTime,
     days: b.days,
     pricePerDay: b.pricePerDay,
+    pricePerKm: b.pricePerKm,
+    includedKm: b.includedKm,
+    kmPackage: b.kmPackage,
+    locationCharge: b.locationCharge,
+    travelConfidence: b.travelConfidence,
+    dropLocationMode: b.dropLocationMode,
+    dropLocationAddress: b.dropLocationAddress ?? undefined,
     basePrice: b.basePrice,
     gst: b.gst,
     total: b.total,
@@ -76,6 +91,15 @@ const createSchema = z.object({
   pickupTime: z.string().min(1),
   dropTime: z.string().min(1),
   days: z.number().int().positive(),
+  kmPackage: z.enum(['limited', 'unlimited']).default('limited'),
+  dropLocationMode: z.enum(['same', 'different']).default('same'),
+  dropLocationAddress: z.string().optional(),
+  dropLatitude: z.number().optional(),
+  dropLongitude: z.number().optional(),
+  pickupLatitude: z.number().optional(),
+  pickupLongitude: z.number().optional(),
+  travelConfidence: z.boolean().default(false),
+  depositPayNow: z.boolean().default(false),
   customer: z.object({
     fullName: z.string().min(2),
     email: z.string().email(),
@@ -107,9 +131,41 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const car = await prisma.car.findUnique({ where: { id: parsed.data.carId } })
   if (!car) return res.status(404).json({ error: 'Car not found' })
 
-  const basePrice = car.pricePerDay * parsed.data.days
-  const gst = Math.round(basePrice * 0.18)
-  const total = basePrice + gst
+  const pickupCoords =
+    parsed.data.pickupLatitude != null && parsed.data.pickupLongitude != null
+      ? {
+          latitude: parsed.data.pickupLatitude,
+          longitude: parsed.data.pickupLongitude,
+        }
+      : car.latitude != null && car.longitude != null
+        ? { latitude: car.latitude, longitude: car.longitude }
+        : null
+
+  const dropCoords =
+    parsed.data.dropLatitude != null && parsed.data.dropLongitude != null
+      ? {
+          latitude: parsed.data.dropLatitude,
+          longitude: parsed.data.dropLongitude,
+        }
+      : null
+
+  const pricing = calcBookingTotal(
+    car,
+    {
+      pickupDate: parsed.data.pickupDate,
+      dropDate: parsed.data.dropDate,
+      pickupTime: parsed.data.pickupTime,
+      dropTime: parsed.data.dropTime,
+      days: parsed.data.days,
+    },
+    {
+      kmPackage: parsed.data.kmPackage,
+      dropLocationMode: parsed.data.dropLocationMode,
+      pickupCoords,
+      dropCoords,
+      travelConfidence: parsed.data.travelConfidence,
+    },
+  )
 
   const booking = await prisma.booking.create({
     data: {
@@ -130,9 +186,16 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
       dropTime: parsed.data.dropTime,
       days: parsed.data.days,
       pricePerDay: car.pricePerDay,
-      basePrice,
-      gst,
-      total,
+      pricePerKm: pricing.pricePerKm,
+      includedKm: pricing.includedKm,
+      kmPackage: parsed.data.kmPackage,
+      locationCharge: pricing.locationCharge,
+      travelConfidence: pricing.travelConfidence,
+      dropLocationMode: parsed.data.dropLocationMode,
+      dropLocationAddress: parsed.data.dropLocationAddress,
+      basePrice: pricing.basePrice,
+      gst: pricing.gst,
+      total: pricing.total,
       customerName: parsed.data.customer.fullName,
       customerEmail: parsed.data.customer.email,
       customerMobile: parsed.data.customer.mobile.replace(/\D/g, ''),

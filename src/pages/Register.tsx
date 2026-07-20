@@ -191,7 +191,10 @@ export function Register() {
         </div>
       </div>
 
-      <SocialLoginButtons onError={setError} />
+      <SocialLoginButtons
+        onError={setError}
+        onSuccess={() => navigate(returnTo, { replace: true })}
+      />
 
       <p className="mt-6 text-center text-xs text-muted">
         By creating an account, you agree to our Terms of Service and Privacy Policy.

@@ -19,6 +19,9 @@ type LocationPickerModalProps = {
   open: boolean
   city: string
   selection: SelectedLocation | null
+  title?: string
+  searchPlaceholder?: string
+  showMapPreview?: boolean
   onClose: () => void
   onContinue: (location: SelectedLocation) => void
 }
@@ -27,6 +30,9 @@ export function LocationPickerModal({
   open,
   city,
   selection,
+  title = 'Book Affordable Cars Instantly',
+  searchPlaceholder,
+  showMapPreview = false,
   onClose,
   onContinue,
 }: LocationPickerModalProps) {
@@ -137,7 +143,7 @@ export function LocationPickerModal({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-[400] flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-[520] flex items-center justify-center bg-black/50 p-4"
           onClick={onClose}
         >
           <motion.div
@@ -165,7 +171,7 @@ export function LocationPickerModal({
                 id="location-picker-title"
                 className="mb-4 text-center font-outfit text-lg font-bold text-gray-900"
               >
-                Book Affordable Cars Instantly
+                {title}
               </p>
 
               <div className="rounded border border-gray-300 px-3 py-2 focus-within:border-primary">
@@ -179,11 +185,21 @@ export function LocationPickerModal({
                     setError('')
                   }}
                   placeholder={
-                    city ? 'Search or enter pickup address' : 'Select a city first'
+                    searchPlaceholder ??
+                    (city ? 'Search or enter pickup address' : 'Select a city first')
                   }
                   className="w-full border-0 bg-transparent py-1 font-outfit text-sm text-gray-900 outline-none"
                 />
               </div>
+
+              {showMapPreview && draftCoords && (
+                <iframe
+                  title="Selected location map"
+                  className="mt-3 h-44 w-full rounded-lg border border-gray-200"
+                  loading="lazy"
+                  src={`https://www.openstreetmap.org/export/embed.html?bbox=${draftCoords.longitude - 0.025}%2C${draftCoords.latitude - 0.018}%2C${draftCoords.longitude + 0.025}%2C${draftCoords.latitude + 0.018}&layer=mapnik&marker=${draftCoords.latitude}%2C${draftCoords.longitude}`}
+                />
+              )}
 
               <button
                 type="button"

@@ -15,27 +15,30 @@ import {
   Tag,
 } from 'lucide-react'
 import type { LuxuryBookingMode } from '../../constants/luxury'
-import { LUXURY_LOCATIONS, VEHICLE_TYPES } from '../../constants/luxury'
+import { VEHICLE_TYPES } from '../../constants/luxury'
 import {
   addHoursToDatetimeLocal,
+  formatTripRangeLabel,
   getTripDurationHours,
-  minDropDatetime,
   MIN_SELF_DRIVE_HOURS,
   splitDatetimeLocal,
   toDatetimeLocal,
 } from '../../utils/datetime'
 import { LuxuryRentalTabs } from './LuxuryRentalTabs'
 import { MinTripDurationModal } from './MinTripDurationModal'
+import { TripDateTimePickerModal } from './TripDateTimePickerModal'
 import {
   LocationPickerModal,
   type SelectedLocation,
 } from './LocationPickerModal'
 
 const today = new Date().toISOString().split('T')[0]
-const defaultTripStart = toDatetimeLocal(today, '10:00')
+const BOOKING_CITIES = ['Bangalore'] as const
+const MODAL_STEP_DELAY_MS = 200
+const defaultTripStart = toDatetimeLocal(today, '08:00')
 const defaultTripEnd = toDatetimeLocal(
   new Date(Date.now() + 86400000).toISOString().split('T')[0],
-  '10:00'
+  '08:00'
 )
 
 function formatLocationLabel(location: SelectedLocation | null) {
@@ -54,19 +57,15 @@ export function LuxuryBookingCard() {
   const [tripEnd, setTripEnd] = useState(defaultTripEnd)
   const [vehicleType, setVehicleType] = useState('')
   const [promo, setPromo] = useState('')
+  const [doorstepDelivery, setDoorstepDelivery] = useState(false)
   const [loading, setLoading] = useState(false)
   const [durationModalOpen, setDurationModalOpen] = useState(false)
+  const [tripPickerOpen, setTripPickerOpen] = useState(false)
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>(
     []
   )
 
-  const todayMin = `${today}T00:00`
   const isSelfDrive = bookingMode === 'self-drive'
-  const tripEndMin = isSelfDrive
-    ? addHoursToDatetimeLocal(tripStart, MIN_SELF_DRIVE_HOURS) ||
-      minDropDatetime(tripStart) ||
-      todayMin
-    : minDropDatetime(tripStart) || todayMin
 
   const showMinDurationModal = () => setDurationModalOpen(true)
 
@@ -84,6 +83,9 @@ export function LuxuryBookingCard() {
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
     setLocation(null)
+    if (nextCity) {
+      window.setTimeout(() => setLocationModalOpen(true), MODAL_STEP_DELAY_MS)
+    }
   }
 
   const handleSearch = (e: FormEvent) => {
@@ -119,6 +121,7 @@ export function LuxuryBookingCard() {
         if (vehicleType) params.set('vehicleType', vehicleType.toLowerCase())
       }
       if (promo) params.set('promo', promo)
+      if (doorstepDelivery) params.set('doorstepDelivery', 'true')
       params.set('lat', String(location.latitude))
       params.set('lng', String(location.longitude))
 
@@ -171,7 +174,7 @@ export function LuxuryBookingCard() {
                   <option value="" className="text-dark">
                     Select City
                   </option>
-                  {LUXURY_LOCATIONS.map((c) => (
+                  {BOOKING_CITIES.map((c) => (
                     <option key={c} value={c} className="text-dark">
                       {c}
                     </option>
@@ -209,46 +212,31 @@ export function LuxuryBookingCard() {
                 />
               </LuxuryField>
 
-              <LuxuryField icon={Calendar} label="Trip Start">
-                <input
-                  type="datetime-local"
-                  value={tripStart}
-                  min={todayMin}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setTripStart(value)
-                    const nextEndMin = isSelfDrive
-                      ? addHoursToDatetimeLocal(value, MIN_SELF_DRIVE_HOURS)
-                      : value
-                    if (tripEnd < nextEndMin) setTripEnd(nextEndMin)
-                  }}
-                  required
-                  className="luxury-input w-full [color-scheme:dark]"
-                  aria-label="Trip start date and time"
-                />
+              <LuxuryField icon={Calendar} label="Trip dates">
+                <button
+                  type="button"
+                  onClick={() => setTripPickerOpen(true)}
+                  className="luxury-input flex w-full items-center justify-between gap-2 text-left"
+                  aria-label="Select trip start and end dates"
+                >
+                  <span className="truncate text-sm text-white sm:text-base">
+                    {formatTripRangeLabel(tripStart, tripEnd)}
+                  </span>
+                  <Calendar className="h-4 w-4 shrink-0 text-white/40" />
+                </button>
               </LuxuryField>
 
-              <LuxuryField icon={Calendar} label="Trip End">
+              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-3 transition-colors hover:border-luxury-accent/30 hover:bg-white/8">
                 <input
-                  type="datetime-local"
-                  value={tripEnd}
-                  min={tripEndMin}
-                  onChange={(e) => {
-                    const value = e.target.value
-                    setTripEnd(value)
-                    if (
-                      isSelfDrive &&
-                      getTripDurationHours(tripStart, value) > 0 &&
-                      getTripDurationHours(tripStart, value) < MIN_SELF_DRIVE_HOURS
-                    ) {
-                      showMinDurationModal()
-                    }
-                  }}
-                  required
-                  className="luxury-input w-full [color-scheme:dark]"
-                  aria-label="Trip end date and time"
+                  type="checkbox"
+                  checked={doorstepDelivery}
+                  onChange={(e) => setDoorstepDelivery(e.target.checked)}
+                  className="mt-0.5 h-4 w-4 shrink-0 rounded border-white/20 bg-white/10 accent-luxury-accent"
                 />
-              </LuxuryField>
+                <span className="font-outfit text-sm leading-snug text-white/80">
+                  Delivery and pick up from any location
+                </span>
+              </label>
 
               {!isSelfDrive && (
                 <>
@@ -328,12 +316,26 @@ export function LuxuryBookingCard() {
         onContinue={(next) => {
           setLocation(next)
           setLocationModalOpen(false)
+          window.setTimeout(() => setTripPickerOpen(true), MODAL_STEP_DELAY_MS)
         }}
       />
 
       <MinTripDurationModal
         open={durationModalOpen}
         onClose={() => setDurationModalOpen(false)}
+      />
+
+      <TripDateTimePickerModal
+        open={tripPickerOpen}
+        tripStart={tripStart}
+        tripEnd={tripEnd}
+        enforceMinDuration={isSelfDrive}
+        onClose={() => setTripPickerOpen(false)}
+        onContinue={(start, end) => {
+          setTripStart(start)
+          setTripEnd(end)
+        }}
+        onDurationTooShort={showMinDurationModal}
       />
     </>
   )

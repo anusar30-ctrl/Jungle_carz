@@ -10,7 +10,7 @@ import {
   FilterDrawer,
   MobileFilterButton,
 } from '../components/search/FilterDrawer'
-import { SortDropdown, ViewToggle } from '../components/search/SortDropdown'
+import { SortDropdown } from '../components/search/SortDropdown'
 import { CarGrid } from '../components/search/CarGrid'
 import { LoadingSkeleton } from '../components/search/LoadingSkeleton'
 import { NoResults } from '../components/search/NoResults'
@@ -31,10 +31,9 @@ import type {
   FilterState,
   SearchParams,
   SortOption,
-  ViewMode,
 } from '../types/search'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 9
 
 export function SearchResults() {
   const [params] = useSearchParams()
@@ -43,7 +42,6 @@ export function SearchResults() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS)
   const [draftFilters, setDraftFilters] = useState<FilterState>(DEFAULT_FILTERS)
   const [sort, setSort] = useState<SortOption>('recommended')
-  const [view, setView] = useState<ViewMode>('list')
   const [mapView, setMapView] = useState(false)
   const [page, setPage] = useState(1)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -89,6 +87,16 @@ export function SearchResults() {
   )
 
   const tripDays = getTripDays(search.pickupDate, search.dropDate)
+  const searchQuery = useMemo(() => params.toString(), [params])
+  const tripTimes = useMemo(
+    () => ({
+      pickupDate: search.pickupDate,
+      dropDate: search.dropDate,
+      pickupTime: search.pickupTime,
+      dropTime: search.dropTime,
+    }),
+    [search],
+  )
   const filteredCars = useCarFilters(categoryCars, filters, sort)
   const totalPages = Math.max(1, Math.ceil(filteredCars.length / PAGE_SIZE))
   const paginatedCars = useMemo(
@@ -167,20 +175,20 @@ export function SearchResults() {
       <Navbar variant="search" />
 
       <div className="bg-dark pt-20 pb-6">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 xl:px-10">
           <SearchSummary />
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="flex gap-8">
+      <main className="w-full px-4 py-6 sm:px-6 sm:py-8 lg:px-8 xl:px-10">
+        <div className="flex gap-5 lg:gap-6 xl:gap-8">
           <FilterSidebar
             filters={filters}
             onChange={setFilters}
             onReset={handleReset}
           />
 
-          <div className="min-w-0 flex-1 lg:w-[75%]">
+          <div className="min-w-0 flex-1">
             <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex flex-wrap items-center gap-3">
                 <MobileFilterButton
@@ -211,7 +219,6 @@ export function SearchResults() {
 
               <div className="flex flex-wrap items-center gap-3">
                 <SortDropdown value={sort} onChange={setSort} />
-                <ViewToggle view={view} onChange={setView} />
                 <button
                   type="button"
                   onClick={() => setMapView((v) => !v)}
@@ -233,15 +240,16 @@ export function SearchResults() {
             </AnimatePresence>
 
             {loading ? (
-              <LoadingSkeleton count={view === 'grid' ? 6 : 4} />
+              <LoadingSkeleton count={6} />
             ) : filteredCars.length === 0 ? (
               <NoResults onReset={handleReset} />
             ) : (
               <>
                 <CarGrid
                   cars={paginatedCars}
-                  view={view}
                   tripDays={tripDays}
+                  searchQuery={searchQuery}
+                  tripTimes={tripTimes}
                   userCoords={userCoords}
                 />
                 <Pagination

@@ -135,7 +135,10 @@ export function Login() {
         </div>
       </div>
 
-      <SocialLoginButtons onError={setError} />
+      <SocialLoginButtons
+        onError={setError}
+        onSuccess={() => navigate(returnTo, { replace: true })}
+      />
 
       <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-dark/80">
         <p className="font-semibold text-primary">Local dev accounts</p>

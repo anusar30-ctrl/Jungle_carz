@@ -37,6 +37,16 @@ export async function loginUser(credentials: LoginCredentials): Promise<User> {
   return res.user
 }
 
+export async function loginWithGoogle(idToken: string): Promise<User> {
+  const res = await api<{ token: string; user: User }>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify({ idToken }),
+    auth: false,
+  })
+  setToken(res.token)
+  return res.user
+}
+
 export function logoutUser(): void {
   setToken(null)
 }

@@ -121,6 +121,12 @@ function buildDetailFromCar(car: CarListing): CarDetailData {
     reviews: car.reviews,
     pricePerDay: car.pricePerDay,
     originalPrice: car.originalPrice,
+    pricePerKm: car.pricePerKm,
+    excessKmRate: car.excessKmRate,
+    securityDeposit: car.securityDeposit,
+    locationName: car.locationName,
+    latitude: car.latitude,
+    longitude: car.longitude,
     gallery:
       car.images.length > 0
         ? car.images.map((url, i) => ({
@@ -263,20 +269,5 @@ export const DEFAULT_TRIP = {
   days: 3,
 }
 
-export function calcPriceBreakdown(
-  pricePerDay: number,
-  originalPrice: number,
-  days: number,
-): import('../types/carDetails').PriceBreakdown {
-  const basePrice = pricePerDay * days
-  const discount = (originalPrice - pricePerDay) * days
-  const gst = Math.round(basePrice * 0.18)
-  return {
-    basePrice,
-    discount,
-    gst,
-    delivery: 0,
-    total: basePrice + gst,
-    deposit: 5000,
-  }
-}
+export { calcPriceBreakdown } from '../utils/pricing'
+export type { PriceBreakdown } from '../utils/pricing'

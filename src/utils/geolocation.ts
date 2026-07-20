@@ -192,3 +192,65 @@ export async function geocodeAddress(
 
   return null
 }
+
+export async function reverseGeocode(
+  latitude: number,
+  longitude: number,
+): Promise<{ name: string; address: string } | null> {
+  const coordFallback = `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+      { headers: { 'Accept-Language': 'en' } },
+    )
+    if (!res.ok) return null
+    const data = (await res.json()) as {
+      display_name?: string
+      address?: NominatimAddress
+    }
+    const address = data.display_name ?? coordFallback
+    const name =
+      formatLocationName(data.address ?? {}) ||
+      address.split(',')[0]?.trim() ||
+      coordFallback
+    return { name, address }
+  } catch {
+    return { name: coordFallback, address: coordFallback }
+  }
+}
+
+export async function searchPlaces(
+  query: string,
+  city?: string,
+): Promise<
+  Array<{ name: string; address: string; latitude: number; longitude: number }>
+> {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+
+  const searchQuery = city ? `${trimmed}, ${city}, India` : `${trimmed}, India`
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&limit=8&addressdetails=1&q=${encodeURIComponent(searchQuery)}`,
+      { headers: { 'Accept-Language': 'en' } },
+    )
+    if (!res.ok) return []
+    const data = (await res.json()) as Array<{
+      lat: string
+      lon: string
+      display_name: string
+      address?: NominatimAddress
+    }>
+    return data.map((hit) => ({
+      name:
+        formatLocationName(hit.address ?? {}) ||
+        hit.display_name.split(',')[0]?.trim() ||
+        hit.display_name,
+      address: hit.display_name,
+      latitude: Number.parseFloat(hit.lat),
+      longitude: Number.parseFloat(hit.lon),
+    }))
+  } catch {
+    return []
+  }
+}

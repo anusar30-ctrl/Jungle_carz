@@ -5,6 +5,7 @@ import {
   Edit3,
   Flame,
   MapPin,
+  Route,
   ShieldCheck,
   Star,
 } from 'lucide-react'
@@ -16,12 +17,15 @@ import {
   formatDisplayTime,
 } from '../../hooks/useCarFilters'
 import { BookNowButton } from './BookNowButton'
+import { resolvePricePerKm } from '../../utils/pricing'
 
 interface CarBookingSidebarProps {
   car: CarDetailData
   trip: TripInfo
   pricing: PriceBreakdown
   bookingHref: string
+  pickupLocationLabel?: string
+  pickupCoords?: { latitude: number; longitude: number } | null
   compact?: boolean
   sticky?: boolean
 }
@@ -31,12 +35,16 @@ export function CarBookingSidebar({
   trip,
   pricing,
   bookingHref,
+  pickupLocationLabel,
+  pickupCoords,
   compact = false,
   sticky = false,
 }: CarBookingSidebarProps) {
-  const savings = car.originalPrice - car.pricePerDay
-  const discountPct = Math.round(
-    ((car.originalPrice - car.pricePerDay) / car.originalPrice) * 100,
+  const pricePerKm = resolvePricePerKm(car)
+  const savingsPerKm = Math.max(
+    0,
+    Math.round(car.originalPrice / pricing.billingDays / pricing.includedKm) -
+      pricePerKm,
   )
 
   return (
@@ -85,19 +93,18 @@ export function CarBookingSidebar({
 
       <div className="mb-4 flex flex-wrap items-baseline gap-2">
         <span className="text-3xl font-bold text-primary">
-          {formatCurrency(car.pricePerDay)}
+          {formatCurrency(pricePerKm)}
         </span>
-        <span className="text-sm font-medium text-muted">/day</span>
-        <span className="text-sm text-muted line-through">
-          {formatCurrency(car.originalPrice)}
-        </span>
-        <span className="rounded-lg bg-accent/15 px-2 py-0.5 text-xs font-bold text-accent">
-          {discountPct}% OFF
+        <span className="text-sm font-medium text-muted">/km</span>
+        <span className="text-sm text-muted">
+          ({formatCurrency(car.pricePerDay)}/day ref.)
         </span>
       </div>
-      <p className="mb-4 text-sm font-semibold text-secondary">
-        You save {formatCurrency(savings)}/day
-      </p>
+      {savingsPerKm > 0 && (
+        <p className="mb-4 text-sm font-semibold text-secondary">
+          Excess km: {formatCurrency(pricing.excessKmRate)}/km
+        </p>
+      )}
 
       <div className="mb-4 rounded-2xl bg-gray-50 p-4">
         <div className="mb-3 flex items-center justify-between">
@@ -124,23 +131,30 @@ export function CarBookingSidebar({
             value={`${formatDisplayTime(trip.pickupTime)} – ${formatDisplayTime(trip.dropTime)}`}
           />
           <Row
+            icon={Route}
+            label="Included km"
+            value={`${pricing.includedKm} km (${pricing.billingDays} day${pricing.billingDays === 1 ? '' : 's'})`}
+          />
+          <Row
             icon={Calendar}
             label="Duration"
-            value={`${trip.days} Days • ${trip.rentalType === 'self-drive' ? 'Self Drive' : 'With Driver'}`}
+            value={`${Math.round(pricing.tripHours)} hrs • ${trip.rentalType === 'self-drive' ? 'Self Drive' : 'With Driver'}`}
           />
         </div>
       </div>
 
       <div className="mb-4 space-y-2 border-b border-gray-100 pb-4 text-sm">
         <PriceRow
-          label={`Price (${trip.days} days)`}
-          value={formatCurrency(pricing.basePrice)}
+          label={`Km package (${pricing.includedKm} km)`}
+          value={formatCurrency(pricing.kmPackagePrice)}
         />
-        <PriceRow
-          label="Discount"
-          value={`-${formatCurrency(pricing.discount)}`}
-          highlight="discount"
-        />
+        {pricing.discount > 0 && (
+          <PriceRow
+            label="Discount"
+            value={`-${formatCurrency(pricing.discount)}`}
+            highlight="discount"
+          />
+        )}
         <PriceRow label="GST (18%)" value={formatCurrency(pricing.gst)} />
         <PriceRow label="Delivery Charges" value="FREE" highlight="free" />
         <div className="flex items-center justify-between pt-2">
@@ -164,6 +178,9 @@ export function CarBookingSidebar({
       <BookNowButton
         href={bookingHref}
         trip={trip}
+        city={trip.pickupCity}
+        pickupLocationLabel={pickupLocationLabel}
+        pickupCoords={pickupCoords}
         className="relative flex w-full items-center justify-center gap-2 overflow-hidden rounded-2xl bg-primary px-6 py-4 text-base font-semibold text-white shadow-lg shadow-primary/30 transition-all hover:bg-primary-dark hover:shadow-xl"
       >
         Book Now

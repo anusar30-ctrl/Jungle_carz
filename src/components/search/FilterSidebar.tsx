@@ -220,7 +220,7 @@ export function FilterSidebar({
   onReset,
 }: FilterSidebarProps) {
   return (
-    <aside className="hidden w-full shrink-0 lg:block lg:w-[25%]">
+    <aside className="hidden w-[240px] shrink-0 lg:block xl:w-[260px]">
       <div className="sticky top-28 rounded-[24px] border border-gray-100 bg-white p-5 shadow-card">
         <div className="mb-2 flex items-center justify-between">
           <h2 className="text-lg font-bold text-dark">Filters</h2>

@@ -58,14 +58,7 @@ export interface TripInfo {
   days: number
 }
 
-export interface PriceBreakdown {
-  basePrice: number
-  discount: number
-  gst: number
-  delivery: number
-  total: number
-  deposit: number
-}
+export type { PriceBreakdown, KmPackageType, DropLocationMode } from '../utils/pricing'
 
 export interface CarDetailData {
   id: string
@@ -78,6 +71,12 @@ export interface CarDetailData {
   reviews: number
   pricePerDay: number
   originalPrice: number
+  pricePerKm?: number
+  excessKmRate?: number
+  securityDeposit?: number
+  locationName?: string
+  latitude?: number
+  longitude?: number
   gallery: GalleryImage[]
   features: CarFeature[]
   description: {

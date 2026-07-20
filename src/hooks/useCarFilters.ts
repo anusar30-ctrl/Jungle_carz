@@ -107,6 +107,12 @@ export function formatCurrency(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`
 }
 
+const HOURS_PER_DAY = 24
+
+export function getPricePerHour(pricePerDay: number): number {
+  return Math.max(1, Math.round(pricePerDay / HOURS_PER_DAY))
+}
+
 export function formatDisplayDate(dateStr: string): string {
   if (!dateStr) return '—'
   return new Date(dateStr).toLocaleDateString('en-IN', {

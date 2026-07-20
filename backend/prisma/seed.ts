@@ -95,6 +95,8 @@ async function main() {
           reviews: 210,
           pricePerDay: 3999,
           originalPrice: 5200,
+          pricePerKm: 83,
+          excessKmRate: 7,
           securityDeposit: 5000,
           images: [
             'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80',
@@ -129,6 +131,8 @@ async function main() {
           reviews: 280,
           pricePerDay: 4999,
           originalPrice: 6000,
+          pricePerKm: 104,
+          excessKmRate: 7,
           securityDeposit: 8000,
           images: [
             'https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=800&q=80',
@@ -166,6 +170,8 @@ async function main() {
           reviews: 565,
           pricePerDay: 1699,
           originalPrice: 1800,
+          pricePerKm: 35,
+          excessKmRate: 7,
           securityDeposit: 2500,
           images: [
             'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?auto=format&fit=crop&w=800&q=80',

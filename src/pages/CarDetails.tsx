@@ -18,15 +18,33 @@ import { CarDetailsCTA } from '../components/car-details/CarDetailsCTA'
 import { MobileBookingSheet } from '../components/car-details/MobileBookingSheet'
 import {
   buildCarDetail,
-  calcPriceBreakdown,
   DEFAULT_TRIP,
   getSimilarCars,
 } from '../constants/carDetails'
 import { fetchAllCars, fetchCarById } from '../utils/carsStorage'
 import { getTripDays } from '../hooks/useCarFilters'
+import { calcPriceBreakdown } from '../utils/pricing'
 import type { CarDetailData } from '../types/carDetails'
 
 type Tab = 'specs' | 'included' | 'rules' | 'host' | 'faq'
+
+function parsePickupCoords(
+  lat: string | null,
+  lng: string | null,
+  car: CarDetailData,
+): { latitude: number; longitude: number } | null {
+  if (lat && lng) {
+    const latitude = Number(lat)
+    const longitude = Number(lng)
+    if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+      return { latitude, longitude }
+    }
+  }
+  if (car.latitude != null && car.longitude != null) {
+    return { latitude: car.latitude, longitude: car.longitude }
+  }
+  return null
+}
 
 export function CarDetails() {
   const { id } = useParams<{ id: string }>()
@@ -91,7 +109,11 @@ export function CarDetails() {
     ),
   }
 
-  const pricing = calcPriceBreakdown(car.pricePerDay, car.originalPrice, trip.days)
+  const pricing = calcPriceBreakdown(car, trip, {
+    kmPackage: 'limited',
+    dropLocationMode: 'same',
+    travelConfidence: false,
+  })
 
   const bookingQuery = new URLSearchParams({
     city: trip.pickupCity,
@@ -102,7 +124,15 @@ export function CarDetails() {
     dropTime: trip.dropTime,
     type: trip.rentalType,
   })
+  const location = searchParams.get('location')
+  const lat = searchParams.get('lat')
+  const lng = searchParams.get('lng')
+  if (location) bookingQuery.set('location', location)
+  if (lat) bookingQuery.set('lat', lat)
+  if (lng) bookingQuery.set('lng', lng)
   const bookingHref = `/booking/${car.id}?${bookingQuery.toString()}`
+  const pickupLocationLabel = location || car.locationName
+  const pickupCoords = parsePickupCoords(lat, lng, car)
 
   const tabs: { id: Tab; label: string }[] = [
     { id: 'specs', label: 'Specifications' },
@@ -126,13 +156,15 @@ export function CarDetails() {
             <FeatureGrid features={car.features} />
 
             <div className="lg:hidden">
-              <CarBookingSidebar
-                car={car}
-                trip={trip}
-                pricing={pricing}
-                bookingHref={bookingHref}
-                compact
-              />
+                <CarBookingSidebar
+                  car={car}
+                  trip={trip}
+                  pricing={pricing}
+                  bookingHref={bookingHref}
+                  pickupLocationLabel={pickupLocationLabel}
+                  pickupCoords={pickupCoords}
+                  compact
+                />
             </div>
 
             <Description description={car.description} carName={car.name} />
@@ -186,6 +218,8 @@ export function CarDetails() {
               trip={trip}
               pricing={pricing}
               bookingHref={bookingHref}
+              pickupLocationLabel={pickupLocationLabel}
+              pickupCoords={pickupCoords}
               sticky
             />
           </div>
@@ -201,6 +235,8 @@ export function CarDetails() {
         trip={trip}
         pricing={pricing}
         bookingHref={bookingHref}
+        pickupLocationLabel={pickupLocationLabel}
+        pickupCoords={pickupCoords}
       />
     </div>
   )
