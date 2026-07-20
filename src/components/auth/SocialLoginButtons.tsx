@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { GoogleLogin, type CredentialResponse } from '@react-oauth/google'
 import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
@@ -17,7 +17,6 @@ interface SocialLoginButtonsProps {
 export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsProps) {
   const { loginWithSocial } = useAuth()
   const [loading, setLoading] = useState<AuthProvider | null>(null)
-  const googleButtonRef = useRef<HTMLDivElement>(null)
 
   const handleGoogleSuccess = async (response: CredentialResponse) => {
     if (!response.credential) {
@@ -46,19 +45,38 @@ export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsPro
       onError?.(
         'Google sign-in is not configured. Add VITE_GOOGLE_CLIENT_ID to your .env file.',
       )
-      return
     }
+  }
 
-    const googleBtn = googleButtonRef.current?.querySelector(
-      'div[role="button"]',
-    ) as HTMLElement | null
-    googleBtn?.click()
+  if (!isGoogleSignInConfigured) {
+    return (
+      <div className="space-y-3">
+        <SocialButton
+          label="Continue with Google"
+          icon={<FcGoogle className="h-5 w-5" />}
+          onClick={handleGoogleClick}
+          loading={false}
+          disabled={false}
+        />
+      </div>
+    )
   }
 
   return (
     <div className="space-y-3">
-      {isGoogleSignInConfigured && (
-        <div ref={googleButtonRef} className="sr-only" aria-hidden="true">
+      <div className="relative">
+        <SocialButton
+          label="Continue with Google"
+          icon={<FcGoogle className="h-5 w-5" />}
+          onClick={() => {}}
+          loading={loading === 'google'}
+          disabled={!!loading}
+          className="pointer-events-none"
+        />
+        <div
+          className="absolute inset-0 flex items-center justify-center overflow-hidden opacity-[0.011] [&>div]:!w-full [&>div]:!h-full"
+          aria-hidden="true"
+        >
           <GoogleLogin
             onSuccess={handleGoogleSuccess}
             onError={() => onError?.('Google sign-in was cancelled or failed.')}
@@ -67,17 +85,10 @@ export function SocialLoginButtons({ onError, onSuccess }: SocialLoginButtonsPro
             theme="outline"
             size="large"
             text="continue_with"
+            width="100%"
           />
         </div>
-      )}
-
-      <SocialButton
-        label="Continue with Google"
-        icon={<FcGoogle className="h-5 w-5" />}
-        onClick={handleGoogleClick}
-        loading={loading === 'google'}
-        disabled={!!loading}
-      />
+      </div>
     </div>
   )
 }
@@ -88,12 +99,14 @@ function SocialButton({
   onClick,
   loading,
   disabled,
+  className = '',
 }: {
   label: string
   icon: React.ReactNode
   onClick: () => void
   loading: boolean
   disabled: boolean
+  className?: string
 }) {
   return (
     <motion.button
@@ -102,7 +115,7 @@ function SocialButton({
       whileTap={{ scale: disabled ? 1 : 0.99 }}
       onClick={onClick}
       disabled={disabled}
-      className="flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white py-3.5 text-sm font-semibold text-dark transition-colors hover:border-primary/30 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60"
+      className={`flex w-full items-center justify-center gap-3 rounded-2xl border border-gray-200 bg-white py-3.5 text-sm font-semibold text-dark transition-colors hover:border-primary/30 hover:bg-primary/5 disabled:cursor-not-allowed disabled:opacity-60 ${className}`}
     >
       {loading ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : icon}
       {label}

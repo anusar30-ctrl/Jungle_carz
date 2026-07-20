@@ -53,4 +53,9 @@ app.use(
 
 app.listen(PORT, () => {
   console.log(`Jungle Carz API running on http://localhost:${PORT}`)
+  if (!process.env.GOOGLE_CLIENT_ID?.trim()) {
+    console.warn(
+      '[Jungle Carz] GOOGLE_CLIENT_ID is not set in backend/.env — Google sign-in will fail until you add it and restart.',
+    )
+  }
 })
