@@ -90,12 +90,19 @@ export function LocationPickerModal({
   }
 
   const handleSelectSpot = (spot: SuggestedPickupSpot) => {
+    if (spot.latitude != null && spot.longitude != null) {
+      onContinue({
+        name: spot.name,
+        address: spot.address,
+        latitude: spot.latitude,
+        longitude: spot.longitude,
+      })
+      onClose()
+      return
+    }
+
     setQuery(spot.address)
-    setDraftCoords(
-      spot.latitude != null && spot.longitude != null
-        ? { latitude: spot.latitude, longitude: spot.longitude }
-        : null
-    )
+    setDraftCoords(null)
     setError('')
   }
 

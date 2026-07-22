@@ -93,5 +93,5 @@ export const HERO_STATS = [
   },
 ] as const
 
-export const PHONE_NUMBER = '+91 98765 43210'
-export const WHATSAPP_NUMBER = '919876543210'
+export const PHONE_NUMBER = '+91 89714 08780'
+export const WHATSAPP_NUMBER = '918971408780'

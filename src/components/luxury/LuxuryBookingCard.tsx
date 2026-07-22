@@ -15,7 +15,7 @@ import {
   Tag,
 } from 'lucide-react'
 import type { LuxuryBookingMode } from '../../constants/luxury'
-import { VEHICLE_TYPES } from '../../constants/luxury'
+import { VEHICLE_TYPES, FEATURE_TYPES } from '../../constants/luxury'
 import {
   addHoursToDatetimeLocal,
   formatTripRangeLabel,
@@ -56,6 +56,7 @@ export function LuxuryBookingCard() {
   const [tripStart, setTripStart] = useState(defaultTripStart)
   const [tripEnd, setTripEnd] = useState(defaultTripEnd)
   const [vehicleType, setVehicleType] = useState('')
+  const [featureType, setFeatureType] = useState('')
   const [promo, setPromo] = useState('')
   const [doorstepDelivery, setDoorstepDelivery] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -119,6 +120,7 @@ export function LuxuryBookingCard() {
       } else {
         params.set('type', bookingMode)
         if (vehicleType) params.set('vehicleType', vehicleType.toLowerCase())
+        if (featureType) params.set('feature', featureType)
       }
       if (promo) params.set('promo', promo)
       if (doorstepDelivery) params.set('doorstepDelivery', 'true')
@@ -240,6 +242,24 @@ export function LuxuryBookingCard() {
 
               {!isSelfDrive && (
                 <>
+                  <LuxuryField icon={ChevronDown} label="Feature Type">
+                    <select
+                      value={featureType}
+                      onChange={(e) => setFeatureType(e.target.value)}
+                      className="luxury-input"
+                      aria-label="Feature type"
+                    >
+                      <option value="" className="text-dark">
+                        Select feature
+                      </option>
+                      {FEATURE_TYPES.map((feature) => (
+                        <option key={feature} value={feature} className="text-dark">
+                          {feature}
+                        </option>
+                      ))}
+                    </select>
+                  </LuxuryField>
+
                   <LuxuryField icon={ChevronDown} label="Vehicle Type">
                     <select
                       value={vehicleType}
@@ -312,6 +332,7 @@ export function LuxuryBookingCard() {
         open={locationModalOpen}
         city={city}
         selection={location}
+        showMapPreview
         onClose={() => setLocationModalOpen(false)}
         onContinue={(next) => {
           setLocation(next)

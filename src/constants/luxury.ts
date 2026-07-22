@@ -19,6 +19,11 @@ export const VEHICLE_TYPES = [
   'Electric',
 ] as const
 
+export const FEATURE_TYPES = [
+  'With Luggage Carrier',
+  'Without Luggage Carrier',
+] as const
+
 export const PICKUP_TIMES = [
   '6:00 AM',
   '8:00 AM',

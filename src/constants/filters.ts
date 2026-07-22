@@ -39,7 +39,7 @@ export const FUEL_TYPES = [
   { value: 'diesel', label: 'Diesel' },
   { value: 'electric', label: 'Electric' },
   { value: 'hybrid', label: 'Hybrid' },
-  { value: 'cnj', label: 'CNJ' },
+  { value: 'cng', label: 'CNG' },
 ] as const
 
 export const SEAT_OPTIONS = [4, 5, 6, 7, 8] as const

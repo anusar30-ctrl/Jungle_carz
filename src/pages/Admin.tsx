@@ -37,7 +37,6 @@ import {
   type SelectedLocation,
 } from '../components/luxury/LocationPickerModal'
 import { LUXURY_LOCATIONS } from '../constants/luxury'
-import { SEAT_OPTIONS } from '../constants/filters'
 
 type Tab = 'overview' | 'cars' | 'bookings' | 'users'
 
@@ -930,13 +929,14 @@ function CarFormModal({
             label="Fuel"
             value={form.fuel}
             onChange={(v) => update('fuel', v as FuelType)}
-            options={['petrol', 'diesel', 'electric', 'hybrid', 'cnj']}
+            options={['petrol', 'diesel', 'electric', 'hybrid', 'cng']}
           />
-          <Select
+          <NumberField
             label="Seats"
-            value={String(form.seats)}
-            onChange={(v) => update('seats', Number(v))}
-            options={SEAT_OPTIONS.map(String)}
+            value={form.seats}
+            onChange={(v) => update('seats', v)}
+            min={1}
+            max={20}
           />
           <Field label="Mileage" value={form.mileage} onChange={(v) => update('mileage', v)} />
           <Field
@@ -1028,6 +1028,8 @@ function CarFormModal({
         open={locationModalOpen}
         city={form.locationCity ?? ''}
         selection={carLocation}
+        title="Select car location"
+        showMapPreview
         onClose={() => setLocationModalOpen(false)}
         onContinue={(location) => {
           setForm((f) => ({
@@ -1041,6 +1043,60 @@ function CarFormModal({
         }}
       />
     </>
+  )
+}
+
+function NumberField({
+  label,
+  value,
+  onChange,
+  min = 1,
+  max = 99,
+}: {
+  label: string
+  value: number
+  onChange: (v: number) => void
+  min?: number
+  max?: number
+}) {
+  const [text, setText] = useState(String(value))
+
+  useEffect(() => {
+    setText(String(value))
+  }, [value])
+
+  return (
+    <label className="block text-sm">
+      <span className="mb-1.5 block font-semibold text-dark">{label}</span>
+      <input
+        type="text"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        value={text}
+        onChange={(e) => {
+          const digits = e.target.value.replace(/\D/g, '')
+          setText(digits)
+          if (digits !== '') {
+            const parsed = parseInt(digits, 10)
+            if (!Number.isNaN(parsed)) {
+              onChange(Math.min(max, Math.max(min, parsed)))
+            }
+          }
+        }}
+        onBlur={() => {
+          if (text === '' || Number(text) < min) {
+            const fallback = Math.max(min, value || min)
+            setText(String(fallback))
+            onChange(fallback)
+            return
+          }
+          const parsed = Math.min(max, Math.max(min, parseInt(text, 10)))
+          setText(String(parsed))
+          onChange(parsed)
+        }}
+        className="w-full rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-primary/40"
+      />
+    </label>
   )
 }
 
@@ -1134,6 +1190,18 @@ function FeatureChipsField({
       <p className="mt-1.5 text-xs text-muted">
         Type a feature and tap Add, or separate with a comma.
       </p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {['With Luggage Carrier', 'Without Luggage Carrier'].map((preset) => (
+          <button
+            key={preset}
+            type="button"
+            onClick={() => addChip(preset)}
+            className="rounded-full border border-gray-200 px-3 py-1.5 text-xs font-semibold text-dark transition-colors hover:border-primary/30 hover:bg-primary/5"
+          >
+            + {preset}
+          </button>
+        ))}
+      </div>
     </div>
   )
 }
@@ -1189,7 +1257,7 @@ function Select({
       >
         {options.map((o) => (
           <option key={o} value={o}>
-            {o === 'cnj' ? 'CNJ' : o}
+            {o === 'cng' ? 'CNG' : o}
           </option>
         ))}
       </select>
