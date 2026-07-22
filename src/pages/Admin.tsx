@@ -37,6 +37,7 @@ import {
   type SelectedLocation,
 } from '../components/luxury/LocationPickerModal'
 import { LUXURY_LOCATIONS } from '../constants/luxury'
+import { SEAT_OPTIONS } from '../constants/filters'
 
 type Tab = 'overview' | 'cars' | 'bookings' | 'users'
 
@@ -931,11 +932,11 @@ function CarFormModal({
             onChange={(v) => update('fuel', v as FuelType)}
             options={['petrol', 'diesel', 'electric', 'hybrid', 'cnj']}
           />
-          <Field
+          <Select
             label="Seats"
-            type="number"
             value={String(form.seats)}
-            onChange={(v) => update('seats', Number(v) || 5)}
+            onChange={(v) => update('seats', Number(v))}
+            options={SEAT_OPTIONS.map(String)}
           />
           <Field label="Mileage" value={form.mileage} onChange={(v) => update('mileage', v)} />
           <Field
@@ -974,15 +975,10 @@ function CarFormModal({
             onChange={(urls) => update('images', urls)}
           />
           <div className="sm:col-span-2">
-            <Field
-              label="Feature chips (comma separated)"
-              value={form.featureChips.join(', ')}
-              onChange={(v) =>
-                update(
-                  'featureChips',
-                  v.split(',').map((s) => s.trim()).filter(Boolean),
-                )
-              }
+            <FeatureChipsField
+              label="Feature chips"
+              chips={form.featureChips}
+              onChange={(chips) => update('featureChips', chips)}
             />
           </div>
         </div>
@@ -1045,6 +1041,100 @@ function CarFormModal({
         }}
       />
     </>
+  )
+}
+
+function FeatureChipsField({
+  label,
+  chips,
+  onChange,
+}: {
+  label: string
+  chips: string[]
+  onChange: (chips: string[]) => void
+}) {
+  const [draft, setDraft] = useState('')
+
+  const addChip = (raw: string) => {
+    const value = raw.trim()
+    if (!value) return
+    if (chips.some((chip) => chip.toLowerCase() === value.toLowerCase())) {
+      setDraft('')
+      return
+    }
+    onChange([...chips, value])
+    setDraft('')
+  }
+
+  const removeChip = (index: number) => {
+    onChange(chips.filter((_, i) => i !== index))
+  }
+
+  const handleDraftChange = (value: string) => {
+    if (value.includes(',')) {
+      const parts = value.split(',').map((part) => part.trim()).filter(Boolean)
+      const next = [...chips]
+      for (const part of parts) {
+        if (!next.some((chip) => chip.toLowerCase() === part.toLowerCase())) {
+          next.push(part)
+        }
+      }
+      onChange(next)
+      setDraft('')
+      return
+    }
+    setDraft(value)
+  }
+
+  return (
+    <div className="block text-sm">
+      <span className="mb-1.5 block font-semibold text-dark">{label}</span>
+      {chips.length > 0 && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {chips.map((chip, index) => (
+            <span
+              key={`${chip}-${index}`}
+              className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/5 px-3 py-1.5 text-sm font-medium text-dark"
+            >
+              {chip}
+              <button
+                type="button"
+                onClick={() => removeChip(index)}
+                aria-label={`Remove ${chip}`}
+                className="text-muted hover:text-dark"
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={draft}
+          onChange={(e) => handleDraftChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault()
+              addChip(draft)
+            }
+          }}
+          placeholder="e.g. Sunroof, FastTag Included"
+          className="min-w-0 flex-1 rounded-xl border border-gray-200 px-3 py-2.5 outline-none focus:border-primary/40"
+        />
+        <button
+          type="button"
+          onClick={() => addChip(draft)}
+          className="shrink-0 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2.5 text-sm font-semibold text-primary"
+        >
+          Add
+        </button>
+      </div>
+      <p className="mt-1.5 text-xs text-muted">
+        Type a feature and tap Add, or separate with a comma.
+      </p>
+    </div>
   )
 }
 
