@@ -3,7 +3,7 @@ import { BookingStatus, RentalType } from '@prisma/client'
 import { z } from 'zod'
 import { prisma } from '../lib/prisma.js'
 import { calcBookingTotal } from '../lib/pricing.js'
-import { requireAdmin, requireAuth, type AuthedRequest } from '../middleware/auth.js'
+import { requireAdmin, requireAuth, optionalAuth, type AuthedRequest } from '../middleware/auth.js'
 import type { IdParams } from '../types/express.js'
 
 const router = Router()
@@ -11,7 +11,8 @@ const router = Router()
 function mapBooking(b: {
   id: string
   reference: string
-  userId: string
+  userId: string | null
+  isGuest: boolean
   carId: string
   carName: string
   carImage: string
@@ -39,11 +40,15 @@ function mapBooking(b: {
   customerMobile: string
   status: BookingStatus
   createdAt: Date
+  user?: { email: string; fullName: string } | null
 }) {
   return {
     id: b.id,
     reference: b.reference,
-    userId: b.userId,
+    userId: b.userId ?? undefined,
+    isGuest: b.isGuest,
+    accountEmail: b.user?.email,
+    accountName: b.user?.fullName,
     carId: b.carId,
     carName: b.carName,
     carImage: b.carImage,
@@ -118,11 +123,14 @@ router.get('/mine', requireAuth, async (req: AuthedRequest, res) => {
 router.get('/', requireAuth, requireAdmin, async (_req, res) => {
   const bookings = await prisma.booking.findMany({
     orderBy: { createdAt: 'desc' },
+    include: {
+      user: { select: { email: true, fullName: true } },
+    },
   })
   return res.json({ bookings: bookings.map(mapBooking) })
 })
 
-router.post('/', requireAuth, async (req: AuthedRequest, res) => {
+router.post('/', optionalAuth, async (req: AuthedRequest, res) => {
   const parsed = createSchema.safeParse(req.body)
   if (!parsed.success) {
     return res.status(400).json({ error: parsed.error.issues[0]?.message })
@@ -170,7 +178,8 @@ router.post('/', requireAuth, async (req: AuthedRequest, res) => {
   const booking = await prisma.booking.create({
     data: {
       reference: makeReference(),
-      userId: req.user!.userId,
+      userId: req.user?.userId ?? null,
+      isGuest: !req.user,
       carId: car.id,
       carName: car.name,
       carImage: (car.images as string[])[0] ?? '',

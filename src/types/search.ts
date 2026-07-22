@@ -9,7 +9,7 @@ export type VehicleType =
   | 'electric'
 
 export type Transmission = 'automatic' | 'manual'
-export type FuelType = 'petrol' | 'diesel' | 'electric' | 'hybrid'
+export type FuelType = 'petrol' | 'diesel' | 'electric' | 'hybrid' | 'cnj'
 export type SortOption =
   | 'recommended'
   | 'price-low'

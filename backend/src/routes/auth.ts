@@ -31,9 +31,9 @@ function publicUser(user: {
 }
 
 const registerSchema = z.object({
-  fullName: z.string().min(2),
+  fullName: z.string().min(2).optional(),
   email: z.string().email(),
-  mobile: z.string().min(10),
+  mobile: z.string().optional().default(''),
   password: z.string().min(6),
 })
 
@@ -58,11 +58,17 @@ router.post('/register', async (req, res) => {
     return res.status(409).json({ error: 'An account with this email already exists' })
   }
 
+  const fullName =
+    parsed.data.fullName?.trim() ||
+    email.split('@')[0]?.replace(/[._-]+/g, ' ').trim() ||
+    'User'
+  const mobile = parsed.data.mobile.replace(/\D/g, '')
+
   const user = await prisma.user.create({
     data: {
       email,
-      fullName: parsed.data.fullName.trim(),
-      mobile: parsed.data.mobile.replace(/\D/g, ''),
+      fullName,
+      mobile,
       passwordHash: await hashPassword(parsed.data.password),
       provider: Provider.EMAIL,
       role: Role.USER,

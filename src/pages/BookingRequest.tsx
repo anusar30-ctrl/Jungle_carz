@@ -268,6 +268,11 @@ export function BookingRequest() {
           <p className="mt-3 text-lg text-muted">
             Choose your km package, drop location, and confirm trip pricing.
           </p>
+          {!user && (
+            <p className="mt-2 text-sm text-primary">
+              No account needed — enter your details below to request a booking.
+            </p>
+          )}
         </motion.div>
 
         <div className="grid gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">

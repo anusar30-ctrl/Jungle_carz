@@ -4,6 +4,22 @@ import type { AuthedRequest } from '../types/express.js'
 
 export type { AuthedRequest } from '../types/express.js'
 
+export function optionalAuth(
+  req: AuthedRequest,
+  _res: Response,
+  next: NextFunction,
+) {
+  const header = req.headers.authorization
+  if (header?.startsWith('Bearer ')) {
+    try {
+      req.user = verifyToken(header.slice(7))
+    } catch {
+      // Allow guest requests when token is missing or invalid.
+    }
+  }
+  next()
+}
+
 export function requireAuth(
   req: AuthedRequest,
   res: Response,

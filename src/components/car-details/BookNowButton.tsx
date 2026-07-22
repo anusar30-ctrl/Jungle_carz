@@ -2,7 +2,6 @@ import { useState, type MouseEvent, type ReactNode } from 'react'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import type { TripInfo } from '../../types/carDetails'
-import { useRequireAuth } from '../../hooks/useRequireAuth'
 import {
   DropLocationPolicyModal,
   type DropLocationSelection,
@@ -31,7 +30,6 @@ export function BookNowButton({
   const [ripples, setRipples] = useState<{ id: number; x: number; y: number }[]>(
     [],
   )
-  const { requireAuth } = useRequireAuth()
   const navigate = useNavigate()
 
   const handleClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -65,10 +63,7 @@ export function BookNowButton({
 
   const handleContinue = (selection: DropLocationSelection) => {
     setModalOpen(false)
-    const target = buildBookingUrl(selection)
-    if (requireAuth(target)) {
-      navigate(target)
-    }
+    navigate(buildBookingUrl(selection))
   }
 
   return (

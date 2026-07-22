@@ -12,7 +12,7 @@ import {
   X,
   MapPin,
 } from 'lucide-react'
-import { fetchAdminStats, type AdminStats } from '../api/admin'
+import { fetchAdminDashboard, type AdminStats } from '../api/admin'
 import { deleteUser, fetchAllUsers, updateUserRole } from '../api/users'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -82,6 +82,22 @@ export function Admin() {
   const [bookings, setBookings] = useState<BookingRequest[]>([])
   const [users, setUsers] = useState<AdminUserView[]>([])
   const [stats, setStats] = useState<AdminStats | null>(null)
+  const [recentSignups, setRecentSignups] = useState<AdminUserView[]>([])
+  const [recentBookings, setRecentBookings] = useState<
+    Array<{
+      id: string
+      reference: string
+      carName: string
+      isGuest: boolean
+      customerName: string
+      customerEmail: string
+      customerMobile: string
+      accountEmail?: string
+      total: number
+      status: BookingStatus
+      createdAt: string
+    }>
+  >([])
   const [loading, setLoading] = useState(true)
   const [showCarForm, setShowCarForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -93,16 +109,18 @@ export function Admin() {
   const refresh = useCallback(async () => {
     setLoading(true)
     try {
-      const [carsData, bookingsData, usersData, statsData] = await Promise.all([
+      const [carsData, bookingsData, usersData, dashboardData] = await Promise.all([
         fetchAllCars(),
         fetchAllBookings(),
         fetchAllUsers(),
-        fetchAdminStats(),
+        fetchAdminDashboard(),
       ])
       setCars(carsData)
       setBookings(bookingsData)
       setUsers(usersData)
-      setStats(statsData)
+      setStats(dashboardData.stats)
+      setRecentSignups(dashboardData.recentSignups)
+      setRecentBookings(dashboardData.recentBookings)
     } catch {
       // Keep partial state on error
     } finally {
@@ -123,6 +141,10 @@ export function Admin() {
         pending: bookings.filter((b) => b.status === 'pending').length,
         users: users.length,
         admins: users.filter((u) => u.role === 'admin').length,
+        newUsers7d: users.filter(
+          (u) => Date.now() - new Date(u.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000,
+        ).length,
+        guestBookings: bookings.filter((b) => b.isGuest).length,
         revenue: bookings
           .filter((b) => b.status === 'confirmed' || b.status === 'completed')
           .reduce((sum, b) => sum + b.total, 0),
@@ -327,15 +349,72 @@ export function Admin() {
         )}
 
         {tab === 'overview' && !loading && (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Total Cars" value={String(overviewStats.cars)} sub={`${overviewStats.tourism} tourism`} />
-            <StatCard label="Bookings" value={String(overviewStats.bookings)} sub={`${overviewStats.pending} pending`} />
-            <StatCard label="Users" value={String(overviewStats.users)} sub={`${overviewStats.admins} admin`} />
-            <StatCard
-              label="Confirmed Revenue"
-              value={formatCurrency(overviewStats.revenue)}
-              sub="Confirmed + completed"
-            />
+          <div className="space-y-6">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <StatCard label="Total Cars" value={String(overviewStats.cars)} sub={`${overviewStats.tourism} tourism`} />
+              <StatCard label="Bookings" value={String(overviewStats.bookings)} sub={`${overviewStats.pending} pending`} />
+              <StatCard label="Users" value={String(overviewStats.users)} sub={`${overviewStats.newUsers7d} new this week`} />
+              <StatCard
+                label="Confirmed Revenue"
+                value={formatCurrency(overviewStats.revenue)}
+                sub={`${overviewStats.guestBookings ?? 0} guest bookings`}
+              />
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <section className="rounded-[24px] border border-gray-100 bg-white p-5 shadow-soft">
+                <h2 className="mb-4 text-lg font-bold text-dark">New signups (last 7 days)</h2>
+                {recentSignups.length === 0 ? (
+                  <p className="text-sm text-muted">No new accounts this week.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {recentSignups.map((u) => (
+                      <div key={u.id} className="rounded-2xl border border-gray-100 px-4 py-3">
+                        <p className="font-semibold text-dark">{u.fullName}</p>
+                        <p className="text-sm text-muted">{u.email}</p>
+                        <p className="text-sm text-muted">
+                          {u.mobile || 'No mobile'} · {u.provider} ·{' '}
+                          {new Date(u.createdAt).toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              <section className="rounded-[24px] border border-gray-100 bg-white p-5 shadow-soft">
+                <h2 className="mb-4 text-lg font-bold text-dark">Recent bookings</h2>
+                {recentBookings.length === 0 ? (
+                  <p className="text-sm text-muted">No bookings yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {recentBookings.map((b) => (
+                      <div key={b.id} className="rounded-2xl border border-gray-100 px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <p className="font-semibold text-dark">{b.carName}</p>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                              b.isGuest
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-primary/10 text-primary'
+                            }`}
+                          >
+                            {b.isGuest ? 'Guest' : 'Account'}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted">
+                          {b.customerName} · {b.customerEmail} · {b.customerMobile}
+                        </p>
+                        <p className="text-sm text-muted">
+                          {b.reference} · {formatCurrency(b.total)} ·{' '}
+                          {new Date(b.createdAt).toLocaleString('en-IN')}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
           </div>
         )}
 
@@ -551,11 +630,27 @@ function BookingsPanel({
         >
           <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
             <div>
-              <p className="text-xs font-semibold text-muted">{b.reference}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-xs font-semibold text-muted">{b.reference}</p>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
+                    b.isGuest
+                      ? 'bg-amber-100 text-amber-800'
+                      : 'bg-primary/10 text-primary'
+                  }`}
+                >
+                  {b.isGuest ? 'Guest booking' : 'Account booking'}
+                </span>
+              </div>
               <h3 className="text-lg font-bold text-dark">{b.carName}</h3>
               <p className="text-sm text-muted">
                 {b.customer.fullName} · {b.customer.email} · {b.customer.mobile}
               </p>
+              {!b.isGuest && b.accountEmail && (
+                <p className="text-xs text-muted">
+                  Account: {b.accountName || b.accountEmail} ({b.accountEmail})
+                </p>
+              )}
               <p className="mt-1 text-sm text-muted">
                 {b.pickupCity} → {b.dropCity} · {b.pickupDate} to {b.dropDate} ·{' '}
                 {b.days} days
@@ -629,11 +724,23 @@ function UsersPanel({
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => (
+            {users.map((u) => {
+              const isNew =
+                Date.now() - new Date(u.createdAt).getTime() < 7 * 24 * 60 * 60 * 1000
+              return (
               <tr key={u.id} className="border-b border-gray-50">
                 <td className="px-4 py-3">
-                  <p className="font-semibold text-dark">{u.fullName}</p>
-                  <p className="text-xs text-muted">{u.email}</p>
+                  <div className="flex items-center gap-2">
+                    <div>
+                      <p className="font-semibold text-dark">{u.fullName}</p>
+                      <p className="text-xs text-muted">{u.email}</p>
+                    </div>
+                    {isNew && (
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-800">
+                        New
+                      </span>
+                    )}
+                  </div>
                 </td>
                 <td className="px-4 py-3">{u.mobile || '—'}</td>
                 <td className="px-4 py-3 capitalize">{u.provider}</td>
@@ -662,7 +769,8 @@ function UsersPanel({
                   )}
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
@@ -821,7 +929,7 @@ function CarFormModal({
             label="Fuel"
             value={form.fuel}
             onChange={(v) => update('fuel', v as FuelType)}
-            options={['petrol', 'diesel', 'electric', 'hybrid']}
+            options={['petrol', 'diesel', 'electric', 'hybrid', 'cnj']}
           />
           <Field
             label="Seats"
@@ -991,7 +1099,7 @@ function Select({
       >
         {options.map((o) => (
           <option key={o} value={o}>
-            {o}
+            {o === 'cnj' ? 'CNJ' : o}
           </option>
         ))}
       </select>

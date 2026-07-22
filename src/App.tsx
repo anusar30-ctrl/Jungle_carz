@@ -34,22 +34,8 @@ function App() {
             </AdminRoute>
           }
         />
-        <Route
-          path="/booking/:carId"
-          element={
-            <ProtectedRoute>
-              <BookingRequest />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/booking/success"
-          element={
-            <ProtectedRoute>
-              <BookingSuccess />
-            </ProtectedRoute>
-          }
-        />
+        <Route path="/booking/:carId" element={<BookingRequest />} />
+        <Route path="/booking/success" element={<BookingSuccess />} />
         <Route
           path="/bookings"
           element={

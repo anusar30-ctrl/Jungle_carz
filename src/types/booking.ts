@@ -9,7 +9,10 @@ export type BookingStatus = 'pending' | 'confirmed' | 'cancelled' | 'completed'
 export interface BookingRequest {
   id: string
   reference: string
-  userId: string
+  userId?: string
+  isGuest?: boolean
+  accountEmail?: string
+  accountName?: string
   carId: string
   carName: string
   carImage: string

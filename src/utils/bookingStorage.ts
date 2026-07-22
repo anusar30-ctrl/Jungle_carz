@@ -1,4 +1,4 @@
-import { api } from '../lib/api'
+import { api, getToken } from '../lib/api'
 import type { BookingRequest, CustomerDetails } from '../types/booking'
 
 export function saveLastBooking(booking: BookingRequest): void {
@@ -52,6 +52,7 @@ export async function createBooking(
   const res = await api<{ booking: BookingRequest }>('/bookings', {
     method: 'POST',
     body: JSON.stringify(input),
+    auth: getToken() ? true : false,
   })
   saveLastBooking(res.booking)
   return res.booking
@@ -75,7 +76,7 @@ export async function deleteBooking(id: string): Promise<void> {
 export function validateFullName(value: string): string | undefined {
   if (!value.trim()) return 'Full name is required'
   if (value.trim().length < 2) return 'Name must be at least 2 characters'
-  if (!/^[a-zA-Z\s.'-]+$/.test(value.trim()))
+  if (!/^[a-zA-Z0-9\s.'-]+$/.test(value.trim()))
     return 'Please enter a valid name'
   return undefined
 }

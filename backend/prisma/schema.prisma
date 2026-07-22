@@ -102,7 +102,8 @@ model Car {
 model Booking {
   id           String        @id @default(uuid())
   reference    String        @unique
-  userId       String        @map("user_id")
+  userId       String?       @map("user_id")
+  isGuest      Boolean       @default(false) @map("is_guest")
   carId        String        @map("car_id")
   carName      String        @map("car_name")
   carImage     String        @map("car_image") @db.Text
@@ -131,7 +132,7 @@ model Booking {
   status       BookingStatus @default(PENDING)
   createdAt    DateTime      @default(now()) @map("created_at")
   updatedAt    DateTime      @updatedAt @map("updated_at")
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   car          Car           @relation(fields: [carId], references: [id], onDelete: Restrict)
 
   @@index([userId])

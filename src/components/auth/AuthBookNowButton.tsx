@@ -1,5 +1,4 @@
 import { useNavigate } from 'react-router-dom'
-import { useRequireAuth } from '../../hooks/useRequireAuth'
 
 interface AuthBookNowLinkProps {
   href: string
@@ -14,14 +13,11 @@ export function AuthBookNowButton({
   children,
   onRipple,
 }: AuthBookNowLinkProps) {
-  const { requireAuth } = useRequireAuth()
   const navigate = useNavigate()
 
   const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     onRipple?.(e)
-    if (requireAuth(href)) {
-      navigate(href)
-    }
+    navigate(href)
   }
 
   return (

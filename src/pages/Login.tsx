@@ -140,14 +140,12 @@ export function Login() {
         onSuccess={() => navigate(returnTo, { replace: true })}
       />
 
-      <div className="rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-dark/80">
-        <p className="font-semibold text-primary">Local dev accounts</p>
-        <p className="mt-1">Admin — admin@junglecarz.com / admin123</p>
-        <p>User — demo@junglecarz.com / demo123</p>
-        <p className="mt-2 text-xs text-muted">
-          Backend must be running: <code className="text-dark">cd backend && npm run dev</code>
-        </p>
-      </div>
+      <Link
+        to={`/register${returnTo !== '/' ? `?returnTo=${encodeURIComponent(returnTo)}` : ''}`}
+        className="mt-6 flex w-full items-center justify-center rounded-2xl border border-gray-200 bg-white py-3.5 text-sm font-semibold text-dark transition-colors hover:border-primary/30 hover:bg-primary/5"
+      >
+        Create account
+      </Link>
     </AuthLayout>
   )
 }
